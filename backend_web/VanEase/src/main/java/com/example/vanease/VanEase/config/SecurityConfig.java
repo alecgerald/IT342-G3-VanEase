@@ -38,40 +38,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Allow access to /api/auth/register
-
-                        // Swagger and API docs
-                        .requestMatchers(
-                                "/swagger-ui.html",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/api-docs/**"
-                        ).permitAll()
-
-                        // Authentication endpoints
-                        .requestMatchers("/api/auth/**").permitAll() // Ensure this line allows access to /api/auth/register
-
-                        // Public vehicle endpoints
-                        .requestMatchers(HttpMethod.GET, "/api/vehicles", "/api/vehicles/available", "/api/vehicles/{id}").permitAll()
-
-                        // Public booking endpoints
-                        .requestMatchers(HttpMethod.GET, "/api/bookings", "/api/bookings/user/{userId}").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/bookings").permitAll() // Allow booking creation
-
-                        // Allow payments
-                        .requestMatchers(HttpMethod.POST, "/api/payments").permitAll() // Allow payments
-
-                        // Protected vehicle endpoints
-                        .requestMatchers("/api/vehicles/create", "/api/vehicles/update/**", "/api/vehicles/delete/**").authenticated()
-
-                        // Protected booking endpoints
-                        .requestMatchers("/api/bookings/update/**", "/api/bookings/delete/**").authenticated()
-
-                        // Admin endpoints
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // Public endpoints
+                        .requestMatchers("/api/auth/**").permitAll()
 
                         // Manager endpoints
-                        .requestMatchers("/api/manager/**").hasRole("MANAGER")
+                        .requestMatchers("/api/vehicles/**").hasRole("MANAGER") // Restrict to MANAGER role
 
                         // All other requests
                         .anyRequest().authenticated()

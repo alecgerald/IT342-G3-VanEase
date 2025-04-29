@@ -1,11 +1,16 @@
 package com.example.vanease.VanEase.controller;
 
 import com.example.vanease.VanEase.model.Vehicle;
+import com.example.vanease.VanEase.security.service.JwtService;
 import com.example.vanease.VanEase.service.VehicleService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +28,9 @@ public class VehicleController {
 
     @Autowired
     private VehicleService vehicleService;
+
+    @Autowired
+    private JwtService jwtService;
 
     @Operation(summary = "Get all vehicles", description = "Retrieves a list of all vehicles")
     @ApiResponse(responseCode = "200", description = "Vehicles retrieved successfully")
@@ -54,13 +62,23 @@ public class VehicleController {
     @Operation(summary = "Create new vehicle", description = "Adds a new vehicle to the system")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Vehicle created successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid vehicle data"),
-            @ApiResponse(responseCode = "409", description = "Plate number already exists")
+            @ApiResponse(responseCode = "403", description = "Forbidden access")
     })
-    @PostMapping
+    @PreAuthorize("hasRole('MANAGER')") // Ensure only MANAGER role can access
+    @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
     public ResponseEntity<Vehicle> createVehicle(
-            @Parameter(description = "Vehicle details to create")
-            @Valid @RequestBody Vehicle vehicle) {
+            @RequestPart("vehicle") @Valid Vehicle vehicle,
+            @RequestPart("image") MultipartFile image,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        if (!authorizationHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        String token = authorizationHeader.replace("Bearer ", "");
+        // Validate token logic here...
+
+        String imageUrl = vehicleService.saveImage(image);
+        vehicle.setImage(imageUrl);
         Vehicle createdVehicle = vehicleService.createVehicle(vehicle);
         return ResponseEntity.ok(createdVehicle);
     }

@@ -6,117 +6,46 @@ import "../styles/my-bookings.css"
 
 export default function MyBookings() {
   const navigate = useNavigate()
-  const [user, setUser] = useState(null)
   const [activeTab, setActiveTab] = useState("all")
   const [bookings, setBookings] = useState([])
   const [allBookings, setAllBookings] = useState([])
+  const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
     // Check if user is logged in
-    const userData = localStorage.getItem("user")
-    if (!userData) {
+    const token = localStorage.getItem("token")
+    if (!token) {
       navigate("/login")
       return
     }
 
-    setUser(JSON.parse(userData))
+    const fetchBookings = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/api/bookings/user", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
 
-    // Mock bookings data
-    const mockBookings = [
-      {
-        id: "B001",
-        model: "Transit Connect",
-        brand: "Ford",
-        year: 2023,
-        rentalRate: 59,
-        vanType: "Family Van",
-        image: "/placeholder.svg?height=300&width=500",
-        pickupLocation: "Downtown",
-        dropoffLocation: "Airport",
-        pickupDate: "2023-08-15",
-        dropoffDate: "2023-08-20",
-        status: "confirmed",
-        price: "$395",
-      },
-      {
-        id: "B002",
-        model: "Sprinter",
-        brand: "Mercedes-Benz",
-        year: 2022,
-        rentalRate: 89,
-        vanType: "Cargo Van",
-        image: "/placeholder.svg?height=300&width=500",
-        pickupLocation: "North Branch",
-        dropoffLocation: "South Branch",
-        pickupDate: "2023-09-05",
-        dropoffDate: "2023-09-07",
-        status: "pending",
-        price: "$178",
-      },
-      {
-        id: "B003",
-        model: "Odyssey",
-        brand: "Honda",
-        year: 2023,
-        rentalRate: 79,
-        vanType: "Luxury Van",
-        image: "/placeholder.svg?height=300&width=500",
-        pickupLocation: "Airport",
-        dropoffLocation: "Downtown",
-        pickupDate: "2023-10-10",
-        dropoffDate: "2023-10-15",
-        status: "completed",
-        price: "$645",
-      },
-      {
-        id: "B004",
-        model: "Sienna",
-        brand: "Toyota",
-        year: 2022,
-        rentalRate: 85,
-        vanType: "Compact Van",
-        image: "/placeholder.svg?height=300&width=500",
-        pickupLocation: "Downtown",
-        dropoffLocation: "Downtown",
-        pickupDate: "2023-07-20",
-        dropoffDate: "2023-07-22",
-        status: "completed",
-        price: "$118",
-      },
-      {
-        id: "B005",
-        model: "Express",
-        brand: "Chevrolet",
-        year: 2021,
-        rentalRate: 75,
-        vanType: "Sprinter",
-        image: "/placeholder.svg?height=300&width=500",
-        pickupLocation: "South Branch",
-        dropoffLocation: "Airport",
-        pickupDate: "2023-11-15",
-        dropoffDate: "2023-11-20",
-        status: "confirmed",
-        price: "$445",
-      },
-      {
-        id: "B006",
-        model: "ProMaster",
-        brand: "RAM",
-        year: 2023,
-        rentalRate: 82,
-        vanType: "Cargo Van",
-        image: "/placeholder.svg?height=300&width=500",
-        pickupLocation: "North Branch",
-        dropoffLocation: "North Branch",
-        pickupDate: "2023-08-25",
-        dropoffDate: "2023-08-26",
-        status: "confirmed",
-        price: "$89",
-      },
-    ]
+        if (!response.ok) {
+          if (response.status === 401) {
+            navigate("/login")
+          } else {
+            throw new Error("Failed to fetch bookings")
+          }
+        }
 
-    setAllBookings(mockBookings)
-    setBookings(mockBookings)
+        const data = await response.json()
+        setAllBookings(data)
+        setBookings(data)
+      } catch (error) {
+        console.error("Error fetching bookings:", error)
+        setErrorMessage("Failed to load bookings. Please try again later.")
+      }
+    }
+
+    fetchBookings()
   }, [navigate])
 
   // Filter bookings based on active tab
@@ -166,10 +95,6 @@ export default function MyBookings() {
     }
   }
 
-  if (!user) {
-    return <div className="loading-container">Loading...</div>
-  }
-
   return (
     <main>
       <div className="my-bookings-container">
@@ -210,6 +135,8 @@ export default function MyBookings() {
             Cancelled
           </button>
         </div>
+
+        {errorMessage && <p className="error-message">{errorMessage}</p>}
 
         {bookings.length === 0 ? (
           <div className="empty-bookings">

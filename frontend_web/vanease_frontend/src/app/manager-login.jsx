@@ -9,6 +9,7 @@ export default function ManagerLogin() {
     email: "",
     password: "",
   })
+  const [error, setError] = useState("")
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -19,11 +20,32 @@ export default function ManagerLogin() {
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    setError("")
 
-    // Simply redirect to manager dashboard without authentication
-    navigate("/manager-dashboard")
+    try {
+      const response = await fetch("http://localhost:8080/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        setError(errorText || "Login failed")
+        return
+      }
+
+      const data = await response.json()
+      localStorage.setItem("token", data.token) // Store the JWT token
+      navigate("/manager-dashboard") // Redirect to the manager dashboard
+    } catch (err) {
+      console.error("Error during login:", err)
+      setError("An error occurred. Please try again.")
+    }
   }
 
   return (
@@ -67,6 +89,7 @@ export default function ManagerLogin() {
             />
           </div>
 
+          {error && <p className="error-message">{error}</p>}
 
           <button type="submit" className="auth-submit-btn manager-submit-btn">
             Login to Manager Portal

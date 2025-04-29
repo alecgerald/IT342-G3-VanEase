@@ -57,4 +57,23 @@ public class JwtService {
                 .getExpiration();
         return expiration.before(new Date());
     }
+
+    public String generateTokenWithRole(String username, String role) {
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("role", role) // Add role claim
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String extractRole(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("role", String.class);
+    }
 }

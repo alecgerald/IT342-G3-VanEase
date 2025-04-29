@@ -5,8 +5,14 @@ import com.example.vanease.VanEase.model.Vehicle;
 import com.example.vanease.VanEase.repository.VehicleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class VehicleService {
@@ -29,7 +35,7 @@ public class VehicleService {
 
     public Vehicle createVehicle(Vehicle vehicle) {
         if (vehicleRepository.existsByPlateNumber(vehicle.getPlateNumber())) {
-            throw new IllegalArgumentException("Vehicle with plate number already exists");
+            throw new IllegalArgumentException("Vehicle with this plate number already exists.");
         }
         return vehicleRepository.save(vehicle);
     }
@@ -41,11 +47,24 @@ public class VehicleService {
         vehicle.setYear(vehicleDetails.getYear());
         vehicle.setRentalRate(vehicleDetails.getRentalRate());
         vehicle.setAvailability(vehicleDetails.getAvailability());
+        vehicle.setImage(vehicleDetails.getImage()); // Update image
         return vehicleRepository.save(vehicle);
     }
 
     public void deleteVehicle(Integer id) {
         Vehicle vehicle = getVehicleById(id);
         vehicleRepository.delete(vehicle);
+    }
+
+    public String saveImage(MultipartFile image) {
+        try {
+            String fileName = UUID.randomUUID() + "_" + image.getOriginalFilename();
+            Path imagePath = Paths.get("uploads/images/" + fileName);
+            Files.createDirectories(imagePath.getParent());
+            Files.write(imagePath, image.getBytes());
+            return "/uploads/images/" + fileName;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to save image", e);
+        }
     }
 }

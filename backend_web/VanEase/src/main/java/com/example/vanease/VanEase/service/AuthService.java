@@ -54,8 +54,12 @@ public class AuthService {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // Generate JWT token
-        String token = jwtService.generateToken(authentication.getName());
+        // Fetch user details
+        User user = userRepository.findByEmail(loginRequest.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Generate JWT token with role
+        String token = jwtService.generateTokenWithRole(authentication.getName(), user.getRole().name());
 
         // Return the token in JSON format
         return ResponseEntity.ok(Map.of("token", token));

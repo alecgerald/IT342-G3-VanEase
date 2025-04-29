@@ -1,5 +1,7 @@
 package com.example.vanease.VanEase.controller;
 
+// Add the correct import for BookingRequest
+import com.example.vanease.VanEase.dto.BookingRequest;
 import com.example.vanease.VanEase.model.Booking;
 import com.example.vanease.VanEase.model.BookingStatus;
 import com.example.vanease.VanEase.model.User;
@@ -61,50 +63,66 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 
-    @Operation(summary = "Get bookings by user ID", description = "Retrieves all bookings for a specific user")
+    @Operation(summary = "Get bookings for the logged-in user", description = "Retrieves all bookings for the authenticated user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bookings retrieved"),
-            @ApiResponse(responseCode = "404", description = "User not found")
+            @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Booking>> getBookingsByUserId(
-            @Parameter(description = "ID of the user")
-            @PathVariable Integer userId) {
-        return ResponseEntity.ok(bookingService.getBookingsByUserId(userId));
+    @GetMapping("/user")
+    public ResponseEntity<List<Booking>> getBookingsForUser(@RequestHeader("Authorization") String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).build(); // Unauthorized if no valid token is provided
+        }
+
+        String token = authorizationHeader.replace("Bearer ", "");
+        Integer userId = jwtService.extractUserId(token);
+
+        if (userId == null) {
+            return ResponseEntity.status(401).build(); // Unauthorized if userId is null
+        }
+
+        List<Booking> bookings = bookingService.getBookingsByUserId(userId);
+        return ResponseEntity.ok(bookings);
     }
 
     @Operation(summary = "Create new booking", description = "Creates a new van booking")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Booking created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
-            @ApiResponse(responseCode = "404", description = "Vehicle or user not found"),
+            @ApiResponse(responseCode = "404", description = "User or vehicle not found"),
             @ApiResponse(responseCode = "401", description = "Unauthorized access")
     })
     @PostMapping
     public ResponseEntity<Booking> createBooking(
-            @Valid @RequestBody Booking booking,
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+            @Valid @RequestBody BookingRequest bookingRequest,
+            @RequestHeader(value = "Authorization") String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(401).body(null); // Unauthorized if no valid token is provided
+            return ResponseEntity.status(401).build(); // Unauthorized if no valid token is provided
         }
 
-        try {
-            String token = authorizationHeader.replace("Bearer ", "");
-            Integer userId = jwtService.extractUserId(token);
+        String token = authorizationHeader.replace("Bearer ", "");
+        Integer userId = jwtService.extractUserId(token);
 
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
-            booking.setUser(user);
-
-            Vehicle vehicle = vehicleRepository.findById(booking.getVehicle().getVehicleId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with ID: " + booking.getVehicle().getVehicleId()));
-            booking.setVehicle(vehicle);
-
-            Booking createdBooking = bookingService.createBooking(booking);
-            return ResponseEntity.ok(createdBooking);
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body(null); // Bad request for validation issues
+        if (userId == null) {
+            return ResponseEntity.status(400).body(null); // Bad request if userId is null
         }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        Vehicle vehicle = vehicleRepository.findById(bookingRequest.getVehicleId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with ID: " + bookingRequest.getVehicleId()));
+
+        Booking booking = new Booking();
+        booking.setUser(user);
+        booking.setVehicle(vehicle);
+        booking.setStartDate(bookingRequest.getStartDate());
+        booking.setEndDate(bookingRequest.getEndDate());
+        booking.setPickupLocation(bookingRequest.getPickupLocation());
+        booking.setDropoffLocation(bookingRequest.getDropoffLocation());
+
+        Booking createdBooking = bookingService.createBooking(booking);
+        return ResponseEntity.ok(createdBooking);
     }
 
     @Operation(summary = "Update booking status", description = "Updates the status of a booking")

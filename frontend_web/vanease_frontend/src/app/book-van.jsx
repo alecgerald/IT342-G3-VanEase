@@ -1,9 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import "../styles/book-van.css"
 
 export default function BookVan() {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     pickupLocation: "",
     dropoffLocation: "",
@@ -15,6 +17,7 @@ export default function BookVan() {
   const [vanModels, setVanModels] = useState([])
   const [selectedVehicleId, setSelectedVehicleId] = useState(null)
   const [errorMessage, setErrorMessage] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
 
   useEffect(() => {
     const fetchVanModels = async () => {
@@ -24,7 +27,7 @@ export default function BookVan() {
           throw new Error("Failed to fetch van models")
         }
         const data = await response.json()
-        setVanModels(data) // Store the entire vehicle data
+        setVanModels(data)
       } catch (error) {
         console.error("Error fetching van models:", error)
         setErrorMessage("Failed to load van models. Please try again later.")
@@ -48,61 +51,62 @@ export default function BookVan() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setErrorMessage("")
+    e.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
 
     if (!selectedVehicleId) {
-      setErrorMessage("Please select a van model.")
-      return
+        setErrorMessage("Please select a van model.");
+        return;
     }
 
-    const bookingData = {
-      startDate: formData.pickupDate,
-      endDate: formData.dropoffDate,
-      pickupLocation: formData.pickupLocation,
-      dropoffLocation: formData.dropoffLocation,
-      vehicle: { vehicleId: selectedVehicleId },
-      paymentStatus: "PENDING",
-    }
+    const bookingRequest = {
+        vehicleId: selectedVehicleId,
+        startDate: formData.pickupDate,
+        endDate: formData.dropoffDate,
+        pickupLocation: formData.pickupLocation,
+        dropoffLocation: formData.dropoffLocation,
+    };
 
     try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        setErrorMessage("You must be logged in to make a booking.")
-        return
-      }
+        const token = localStorage.getItem("token");
+        if (!token) {
+            setErrorMessage("You must be logged in to make a booking.");
+            navigate("/login");
+            return;
+        }
 
-      const response = await fetch("http://localhost:8080/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(bookingData),
-      })
+        const response = await fetch("http://localhost:8080/api/bookings", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(bookingRequest),
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error("Error response:", errorText)
-        setErrorMessage("Failed to submit booking. Please try again.")
-        return
-      }
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Error response:", errorText);
+            setErrorMessage("Failed to submit booking. Please try again.");
+            return;
+        }
 
-      alert("Booking request submitted successfully!")
-      setFormData({
-        pickupLocation: "",
-        dropoffLocation: "",
-        pickupDate: "",
-        dropoffDate: "",
-        vanModel: "",
-        paymentMethod: "",
-      })
-      setSelectedVehicleId(null)
+        setSuccessMessage("Booking request submitted successfully!");
+        setFormData({
+            pickupLocation: "",
+            dropoffLocation: "",
+            pickupDate: "",
+            dropoffDate: "",
+            vanModel: "",
+            paymentMethod: "",
+        });
+        setSelectedVehicleId(null);
     } catch (error) {
-      console.error("Error submitting booking:", error)
-      setErrorMessage("An unexpected error occurred. Please try again.")
+        console.error("Error submitting booking:", error)
+        setErrorMessage("An unexpected error occurred. Please try again.")
     }
-  }
+}
 
   return (
     <main>
@@ -113,6 +117,7 @@ export default function BookVan() {
         </p>
 
         {errorMessage && <p className="error-message">{errorMessage}</p>}
+        {successMessage && <p className="success-message">{successMessage}</p>}
 
         <div className="booking-card">
           <div className="booking-layout">

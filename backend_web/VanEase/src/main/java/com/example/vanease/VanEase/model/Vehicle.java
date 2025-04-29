@@ -51,6 +51,9 @@ public class Vehicle {
     @OneToMany(mappedBy = "vehicle")
     private List<Booking> bookings;
 
+    @Column(name = "image_url", length = 500)
+    private String image;
+
     public boolean checkAvailability() {
         return this.availability;
     }
@@ -61,5 +64,13 @@ public class Vehicle {
 
     public Vehicle viewDetails() {
         return this;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
+    }
+
+    public String getImage() {
+        return image;
     }
 }
