@@ -12,7 +12,6 @@ export default function BookVan() {
     pickupDate: "",
     dropoffDate: "",
     vanModel: "",
-    paymentMethod: "",
   })
   const [vanModels, setVanModels] = useState([])
   const [selectedVehicleId, setSelectedVehicleId] = useState(null)
@@ -51,62 +50,61 @@ export default function BookVan() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMessage("");
-    setSuccessMessage("");
+    e.preventDefault()
+    setErrorMessage("")
+    setSuccessMessage("")
 
     if (!selectedVehicleId) {
-        setErrorMessage("Please select a van model.");
-        return;
+      setErrorMessage("Please select a van model.")
+      return
     }
 
     const bookingRequest = {
-        vehicleId: selectedVehicleId,
-        startDate: formData.pickupDate,
-        endDate: formData.dropoffDate,
-        pickupLocation: formData.pickupLocation,
-        dropoffLocation: formData.dropoffLocation,
-    };
+      vehicleId: selectedVehicleId,
+      startDate: formData.pickupDate,
+      endDate: formData.dropoffDate,
+      pickupLocation: formData.pickupLocation,
+      dropoffLocation: formData.dropoffLocation,
+    }
 
     try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            setErrorMessage("You must be logged in to make a booking.");
-            navigate("/login");
-            return;
-        }
+      const token = localStorage.getItem("token")
+      if (!token) {
+        setErrorMessage("You must be logged in to make a booking.")
+        navigate("/login")
+        return
+      }
 
-        const response = await fetch("http://localhost:8080/api/bookings", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(bookingRequest),
-        });
+      const response = await fetch("http://localhost:8080/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bookingRequest),
+      })
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Error response:", errorText);
-            setErrorMessage("Failed to submit booking. Please try again.");
-            return;
-        }
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("Error response:", errorText)
+        setErrorMessage(errorText || "Failed to submit booking. Please try again.")
+        return
+      }
 
-        setSuccessMessage("Booking request submitted successfully!");
-        setFormData({
-            pickupLocation: "",
-            dropoffLocation: "",
-            pickupDate: "",
-            dropoffDate: "",
-            vanModel: "",
-            paymentMethod: "",
-        });
-        setSelectedVehicleId(null);
+      setSuccessMessage("Booking request submitted successfully!")
+      setFormData({
+        pickupLocation: "",
+        dropoffLocation: "",
+        pickupDate: "",
+        dropoffDate: "",
+        vanModel: "",
+      })
+      setSelectedVehicleId(null)
     } catch (error) {
-        console.error("Error submitting booking:", error)
-        setErrorMessage("An unexpected error occurred. Please try again.")
+      console.error("Error submitting booking:", error)
+      setErrorMessage("An unexpected error occurred. Please try again.")
     }
-}
+  }
 
   return (
     <main>
@@ -263,46 +261,6 @@ export default function BookVan() {
                         </option>
                       ))}
                     </select>
-                  </div>
-                </div>
-
-                <div className="booking-form-section">
-                  <h3 className="booking-form-section-title">Payment Method</h3>
-
-                  <div className="booking-form-group">
-                    <div className="payment-options">
-                      <label className="payment-option">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="cash"
-                          checked={formData.paymentMethod === "cash"}
-                          onChange={handleChange}
-                          required
-                        />
-                        <span className="payment-option-icon">💵</span>
-                        <div className="payment-option-info">
-                          <span className="payment-option-title">Cash On-Site</span>
-                          <span className="payment-option-description">Pay when you pick up your van</span>
-                        </div>
-                      </label>
-
-                      <label className="payment-option">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="paypal"
-                          checked={formData.paymentMethod === "paypal"}
-                          onChange={handleChange}
-                          required
-                        />
-                        <span className="payment-option-icon">💳</span>
-                        <div className="payment-option-info">
-                          <span className="payment-option-title">PayPal</span>
-                          <span className="payment-option-description">Pay securely online</span>
-                        </div>
-                      </label>
-                    </div>
                   </div>
                 </div>
 
