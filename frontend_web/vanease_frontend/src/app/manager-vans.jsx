@@ -32,17 +32,17 @@ export default function ManagerVans() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
+    e.preventDefault()
+    const token = localStorage.getItem("token")
     if (!token) {
-      alert("You must be logged in to perform this action.");
-      return;
+      alert("You must be logged in to perform this action.")
+      return
     }
 
-    const formDataToSend = new FormData();
-    formDataToSend.append("vehicle", new Blob([JSON.stringify(formData)], { type: "application/json" }));
+    const formDataToSend = new FormData()
+    formDataToSend.append("vehicle", new Blob([JSON.stringify(formData)], { type: "application/json" }))
     if (imageFile) {
-      formDataToSend.append("image", imageFile);
+      formDataToSend.append("image", imageFile)
     }
 
     try {
@@ -52,14 +52,14 @@ export default function ManagerVans() {
           Authorization: `Bearer ${token}`,
         },
         body: formDataToSend,
-      });
+      })
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to add vehicle");
+        const errorText = await response.text()
+        throw new Error(errorText || "Failed to add vehicle")
       }
 
-      alert("Vehicle added successfully!");
+      alert("Vehicle added successfully!")
       setFormData({
         brand: "",
         model: "",
@@ -67,16 +67,16 @@ export default function ManagerVans() {
         rentalRate: "",
         plateNumber: "",
         available: true,
-      });
-      setImageFile(null);
+      })
+      setImageFile(null)
       if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        fileInputRef.current.value = ""
       }
     } catch (error) {
-      console.error("Error adding vehicle:", error);
-      alert(error.message || "An error occurred. Please try again.");
+      console.error("Error adding vehicle:", error)
+      alert(error.message || "An error occurred. Please try again.")
     }
-  };
+  }
 
   return (
     <>

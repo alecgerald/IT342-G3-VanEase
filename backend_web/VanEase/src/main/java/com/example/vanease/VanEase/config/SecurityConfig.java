@@ -40,12 +40,13 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/vehicles/**").permitAll() // Allow public access to vehicles
 
                 // User endpoints
                 .requestMatchers("/api/user/**").authenticated()
 
                 // Manager endpoints
-                .requestMatchers("/api/vehicles/**").hasRole("MANAGER")
+                .requestMatchers("/api/vehicles/manage/**").hasRole("MANAGER") // Restrict management to MANAGER role
 
                 // All other requests
                 .anyRequest().authenticated()
