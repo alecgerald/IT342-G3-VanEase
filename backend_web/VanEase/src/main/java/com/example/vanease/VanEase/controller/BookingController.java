@@ -23,7 +23,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -79,6 +82,45 @@ public class BookingController {
 
             Booking createdBooking = bookingService.createBooking(booking);
             return ResponseEntity.ok(createdBooking);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/user")
+    public ResponseEntity<?> getUserBookings(@RequestHeader(value = "Authorization") String authorizationHeader) {
+        try {
+            if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Unauthorized: Missing or invalid token.");
+            }
+
+            String token = authorizationHeader.replace("Bearer ", "");
+            String username = jwtService.extractUsername(token);
+
+            if (username == null || username.isEmpty()) {
+                return ResponseEntity.status(400).body("Invalid token: Unable to extract username.");
+            }
+
+            User user = userRepository.findByEmail(username)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + username));
+
+            List<Booking> bookings = bookingService.getBookingsByUserId(user.getUserId());
+
+            // Map bookings to include only necessary fields
+            List<Map<String, Object>> response = bookings.stream().map(booking -> {
+                Map<String, Object> bookingData = new HashMap<>();
+                bookingData.put("bookingId", booking.getBookingId());
+                bookingData.put("vehicleId", booking.getVehicle().getVehicleId()); // Only include vehicleId
+                bookingData.put("startDate", booking.getStartDate());
+                bookingData.put("endDate", booking.getEndDate());
+                bookingData.put("pickupLocation", booking.getPickupLocation());
+                bookingData.put("dropoffLocation", booking.getDropoffLocation());
+                bookingData.put("status", booking.getStatus());
+                bookingData.put("price", booking.getTotalPrice());
+                return bookingData;
+            }).collect(Collectors.toList());
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(400).body("Error: " + e.getMessage());
         }

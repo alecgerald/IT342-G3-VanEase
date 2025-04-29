@@ -39,7 +39,18 @@ public class BookingService {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User not found with id: " + userId);
         }
-        return bookingRepository.findByUser_UserId(userId);
+
+        List<Booking> bookings = bookingRepository.findByUser_UserId(userId);
+
+        // Ensure lazy-loaded fields are initialized to avoid serialization issues
+        bookings.forEach(booking -> {
+            booking.getVehicle().getModel(); // Access a field to initialize the vehicle object
+            if (booking.getPayment() != null) {
+                booking.getPayment().getPaymentStatus(); // Access a field to initialize the payment object
+            }
+        });
+
+        return bookings;
     }
 
     public List<Booking> getActiveBookingsForVehicle(Integer vehicleId, LocalDate startDate, LocalDate endDate) {

@@ -12,28 +12,32 @@ export default function MyBookings() {
   const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem("token")
-    if (!token) {
-      navigate("/login")
-      return
-    }
-
     const fetchBookings = async () => {
       try {
+        const token = localStorage.getItem("token")
+        if (!token) {
+          setErrorMessage("You must be logged in to view bookings.")
+          navigate("/login")
+          return
+        }
+
         const response = await fetch("http://localhost:8080/api/bookings/user", {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
+            "Authorization": `Bearer ${token}`,
           },
         })
 
         if (!response.ok) {
-          if (response.status === 401) {
+          if (response.status === 401 || response.status === 403) {
+            setErrorMessage("Unauthorized access. Please log in again.")
+            localStorage.removeItem("token")
             navigate("/login")
           } else {
-            throw new Error("Failed to fetch bookings")
+            const errorText = await response.text()
+            throw new Error(errorText || "Failed to fetch bookings")
           }
+          return
         }
 
         const data = await response.json()
@@ -41,17 +45,15 @@ export default function MyBookings() {
         setBookings(data)
       } catch (error) {
         console.error("Error fetching bookings:", error)
-        setErrorMessage("Failed to load bookings. Please try again later.")
+        setErrorMessage("Failed to load bookings. Please check your connection and try again.")
       }
     }
 
     fetchBookings()
   }, [navigate])
 
-  // Filter bookings based on active tab
   const filterBookings = (tab) => {
     setActiveTab(tab)
-
     if (tab === "all") {
       setBookings(allBookings)
     } else {
@@ -148,16 +150,15 @@ export default function MyBookings() {
         ) : (
           <div>
             {bookings.map((booking) => (
-              <div key={booking.id} className="booking-card">
+              <div key={booking.bookingId} className="booking-card">
                 <div className="booking-card-layout">
-                  <img className="booking-card-image" src={booking.image || "/placeholder.svg"} alt={booking.vanType} />
                   <div className="booking-card-content">
                     <div className="booking-card-header">
                       <div>
                         <h2 className="booking-card-title">
-                          {booking.brand} {booking.model} - {booking.vanType}
+                          Vehicle ID: {booking.vehicleId} {/* Display vehicleId */}
                         </h2>
-                        <p className="booking-card-id">Booking ID: {booking.id}</p>
+                        <p className="booking-card-id">Booking ID: {booking.bookingId}</p>
                       </div>
                       <div>{getStatusBadge(booking.status)}</div>
                     </div>
@@ -167,14 +168,14 @@ export default function MyBookings() {
                         <span className="booking-detail-icon">📅</span>
                         <div className="booking-detail-content">
                           <p>Pickup Date</p>
-                          <p>{formatDate(booking.pickupDate)}</p>
+                          <p>{formatDate(booking.startDate)}</p>
                         </div>
                       </div>
                       <div className="booking-detail">
                         <span className="booking-detail-icon">📅</span>
                         <div className="booking-detail-content">
                           <p>Drop-off Date</p>
-                          <p>{formatDate(booking.dropoffDate)}</p>
+                          <p>{formatDate(booking.endDate)}</p>
                         </div>
                       </div>
                       <div className="booking-detail">
@@ -195,33 +196,14 @@ export default function MyBookings() {
 
                     <div className="booking-specs">
                       <div className="booking-spec">
-                        <span className="booking-spec-label">Brand:</span>
-                        <span>{booking.brand}</span>
-                      </div>
-                      <div className="booking-spec">
-                        <span className="booking-spec-label">Model:</span>
-                        <span>{booking.model}</span>
-                      </div>
-                      <div className="booking-spec">
-                        <span className="booking-spec-label">Year:</span>
-                        <span>{booking.year}</span>
-                      </div>
-                      <div className="booking-spec">
-                        <span className="booking-spec-label">Rental Rate:</span>
-                        <span>${booking.rentalRate}/day</span>
+                        <span className="booking-spec-label">Total Price:</span>
+                        <span>${booking.price}</span>
                       </div>
                     </div>
 
                     <div className="booking-card-footer">
-                      <div className="booking-price">
-                        <span className="booking-price-label">Total Price</span>
-                        <span className="booking-price-value">{booking.price}</span>
-                      </div>
-                      <div className="booking-actions">
-                        {booking.status === "pending" && <button className="btn btn-cancel">Cancel</button>}
-
-                        {booking.status === "completed" && <button className="btn btn-review">Leave Review</button>}
-                      </div>
+                      {booking.status === "pending" && <button className="btn btn-cancel">Cancel</button>}
+                      {booking.status === "completed" && <button className="btn btn-review">Leave Review</button>}
                     </div>
                   </div>
                 </div>
