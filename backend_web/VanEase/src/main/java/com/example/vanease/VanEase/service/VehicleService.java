@@ -59,10 +59,10 @@ public class VehicleService {
     public String saveImage(MultipartFile image) {
         try {
             String fileName = UUID.randomUUID() + "_" + image.getOriginalFilename();
-            Path imagePath = Paths.get("uploads/images/" + fileName);
+            Path imagePath = Paths.get("frontend_web/vanease_frontend/src/assets/" + fileName);
             Files.createDirectories(imagePath.getParent());
             Files.write(imagePath, image.getBytes());
-            return "/uploads/images/" + fileName;
+            return "/assets/" + fileName;
         } catch (IOException e) {
             throw new RuntimeException("Failed to save image", e);
         }

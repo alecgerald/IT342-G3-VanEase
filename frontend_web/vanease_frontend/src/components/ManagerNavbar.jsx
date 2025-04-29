@@ -1,27 +1,56 @@
 "use client"
 
-import { useState } from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import "../styles/manager-navbar.css"
 
 export default function ManagerNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const location = useLocation()
+  const [manager, setManager] = useState(null)
   const navigate = useNavigate()
 
-  // Mock manager data for demo
-  const manager = {
-    name: "Admin Manager",
-    email: "manager@example.com",
-    role: "manager",
-  }
+  useEffect(() => {
+    const fetchManagerDetails = async () => {
+      const token = localStorage.getItem("token")
+      if (!token) {
+        navigate("/manager-login")
+        return
+      }
+
+      try {
+        const response = await fetch("http://localhost:8080/api/manager/details", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem("token")
+            navigate("/manager-login")
+          } else {
+            throw new Error("Failed to fetch manager details")
+          }
+        }
+
+        const data = await response.json()
+        setManager(data)
+      } catch (error) {
+        console.error("Error fetching manager details:", error)
+        navigate("/manager-login")
+      }
+    }
+
+    fetchManagerDetails()
+  }, [navigate])
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
   }
 
   const handleLogout = () => {
-    // Simply redirect to manager login page
+    localStorage.removeItem("token")
     navigate("/manager-login")
   }
 

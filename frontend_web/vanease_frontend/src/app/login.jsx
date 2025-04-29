@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { useUserContext } from "../context/UserContext" // Import UserContext
 import "../styles/auth.css"
 
 export default function Login() {
@@ -11,6 +12,7 @@ export default function Login() {
   })
   const [error, setError] = useState("")
   const navigate = useNavigate()
+  const { setToken } = useUserContext() // Access the context to set the token
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -40,7 +42,8 @@ export default function Login() {
       }
 
       const data = await response.json()
-      localStorage.setItem("token", data.token) // Store the token
+      setToken(data.token) // Store the token in the global state
+      localStorage.setItem("token", data.token) // Store the token in localStorage
       navigate("/") // Redirect to home page
     } catch (err) {
       setError("An error occurred. Please try again.")

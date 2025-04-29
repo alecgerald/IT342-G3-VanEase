@@ -1,18 +1,69 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useUserContext } from "../context/UserContext"
+import { useNavigate } from "react-router-dom"
 import "../styles/profile.css"
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "555-123-4567",
-    password: "password123",
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
   })
   const [message, setMessage] = useState({ text: "", type: "" })
+  const { token } = useUserContext()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token) {
+        console.error("Token is missing. Redirecting to login.")
+        setMessage({ text: "Unauthorized access. Please log in.", type: "error" })
+        navigate("/login")
+        return
+      }
+
+      console.log("Sending request with token:", token) // Debugging log
+
+      try {
+        const response = await fetch("http://localhost:8080/api/user/profile", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (response.status === 403) {
+          console.error("Token is invalid or expired. Redirecting to login.")
+          setMessage({ text: "Session expired. Please log in again.", type: "error" })
+          navigate("/login")
+          return
+        }
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch profile")
+        }
+
+        const data = await response.json()
+        console.log("Profile data fetched successfully:", data) // Debugging log
+        setFormData({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          password: "",
+        })
+      } catch (error) {
+        console.error("Error fetching profile:", error)
+        setMessage({ text: "Failed to load profile. Please try again.", type: "error" })
+      }
+    }
+
+    fetchProfile()
+  }, [token, navigate])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -30,20 +81,42 @@ export default function Profile() {
     setShowPassword(!showPassword)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setIsEditing(false)
-    setMessage({ text: "Profile updated successfully", type: "success" })
+    setMessage({ text: "", type: "" })
 
-    // Clear message after 3 seconds
-    setTimeout(() => {
-      setMessage({ text: "", type: "" })
-    }, 3000)
+    try {
+      const response = await fetch("http://localhost:8080/api/user/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (response.status === 403) {
+        console.error("Token is invalid or expired. Redirecting to login.")
+        setMessage({ text: "Session expired. Please log in again.", type: "error" })
+        navigate("/login")
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to update profile")
+      }
+
+      setMessage({ text: "Profile updated successfully", type: "success" })
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      setMessage({ text: "Failed to update profile. Please try again.", type: "error" })
+    }
   }
 
   const handleLogout = () => {
-    // This is just for UI demonstration
-    console.log("Logout clicked")
+    localStorage.removeItem("token")
+    navigate("/login")
   }
 
   return (
