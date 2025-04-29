@@ -1,0 +1,311 @@
+.van-list-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+.van-list-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.van-list-title {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+  color: #34572e;
+}
+
+.van-list-subtitle {
+  color: #666;
+  font-size: 1.1rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* Loading and Error States */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  color: #666;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #34572e;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.error-container {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  margin: 2rem auto;
+  max-width: 600px;
+}
+
+/* Search and Filters */
+.van-list-controls {
+  margin-bottom: 2rem;
+}
+
+.van-search {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.van-search-input {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.van-search-input:focus {
+  outline: none;
+  border-color: #34572e;
+  box-shadow: 0 2px 8px rgba(52, 87, 46, 0.15);
+}
+
+.van-search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 1.25rem;
+}
+
+.van-filters {
+  margin-bottom: 2rem;
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.filter-button {
+  padding: 0.75rem 1.5rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-button:hover {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.filter-button.active {
+  background-color: #34572e;
+  color: white;
+  border-color: #34572e;
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: 3rem;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  margin: 2rem 0;
+}
+
+.no-results h3 {
+  color: #4b5563;
+  margin-bottom: 0.5rem;
+}
+
+.no-results p {
+  color: #6b7280;
+}
+
+/* Van Grid */
+.van-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 2rem;
+}
+
+/* Van Card */
+.van-card {
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.van-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.van-card-image-container {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.van-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.van-card:hover .van-card-image {
+  transform: scale(1.05);
+}
+
+.van-card-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: rgba(52, 87, 46, 0.9);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.van-card-content {
+  padding: 1.5rem;
+}
+
+.van-card-title {
+  font-size: 1.25rem;
+  color: #34572e;
+  margin-bottom: 1rem;
+}
+
+.van-card-details {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.van-card-detail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6b7280;
+}
+
+.detail-icon {
+  font-size: 1.25rem;
+}
+
+.van-card-price {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 1.5rem;
+}
+
+.price-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #34572e;
+}
+
+.price-period {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-left: 0.25rem;
+}
+
+.van-card-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-book {
+  flex: 1;
+  display: inline-block;
+  background-color: #34572e;
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-book:hover {
+  background-color: #2a4625;
+}
+
+.btn-details {
+  flex: 1;
+  display: inline-block;
+  background-color: white;
+  color: #34572e;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  border: 1px solid #34572e;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-details:hover {
+  background-color: rgba(52, 87, 46, 0.05);
+}
+
+/* Responsive Design */
+@media (min-width: 640px) {
+  .van-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .van-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .van-list-header {
+    text-align: left;
+  }
+
+  .van-list-subtitle {
+    margin: 0;
+  }
+
+  .filter-buttons {
+    justify-content: flex-start;
+  }
+}
