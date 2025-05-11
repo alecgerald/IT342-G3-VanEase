@@ -64,23 +64,39 @@ public class VehicleController {
             @ApiResponse(responseCode = "200", description = "Vehicle created successfully"),
             @ApiResponse(responseCode = "403", description = "Forbidden access")
     })
-    @PreAuthorize("hasRole('MANAGER')") // Ensure only MANAGER role can access
-    @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
-    public ResponseEntity<Vehicle> createVehicle(
-            @RequestPart("vehicle") @Valid Vehicle vehicle,
-            @RequestPart("image") MultipartFile image,
+    @PreAuthorize("hasRole('MANAGER')")
+    @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE })
+    public ResponseEntity<?> createVehicle(
+            @RequestPart(value = "vehicle", required = false) @Valid Vehicle vehicle,
+            @RequestPart(value = "image", required = false) MultipartFile image,
             @RequestHeader("Authorization") String authorizationHeader) {
-        if (!authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        try {
+            if (!authorizationHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
+            String token = authorizationHeader.replace("Bearer ", "");
+            // Validate token logic here...
+
+            if (vehicle == null) {
+                return ResponseEntity.badRequest().body("Vehicle data is required");
+            }
+
+            if (vehicle.getSeatingCapacity() == null || vehicle.getSeatingCapacity() < 1) {
+                return ResponseEntity.badRequest().body("Seating capacity is required and must be at least 1");
+            }
+
+            if (image != null) {
+                String imageUrl = vehicleService.saveImage(image);
+                vehicle.setImage(imageUrl);
+            }
+
+            Vehicle createdVehicle = vehicleService.createVehicle(vehicle);
+            return ResponseEntity.ok(createdVehicle);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error creating vehicle: " + e.getMessage());
         }
-
-        String token = authorizationHeader.replace("Bearer ", "");
-        // Validate token logic here...
-
-        String imageUrl = vehicleService.saveImage(image);
-        vehicle.setImage(imageUrl);
-        Vehicle createdVehicle = vehicleService.createVehicle(vehicle);
-        return ResponseEntity.ok(createdVehicle);
     }
 
     @Operation(summary = "Update vehicle", description = "Updates an existing vehicle's details")
@@ -89,6 +105,7 @@ public class VehicleController {
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "404", description = "Vehicle not found")
     })
+    @PreAuthorize("hasRole('MANAGER')")
     @PutMapping("/{id}")
     public ResponseEntity<Vehicle> updateVehicle(
             @Parameter(description = "ID of the vehicle to update") @PathVariable Integer id,
@@ -103,6 +120,7 @@ public class VehicleController {
             @ApiResponse(responseCode = "400", description = "Cannot delete vehicle with active bookings"),
             @ApiResponse(responseCode = "404", description = "Vehicle not found")
     })
+    @PreAuthorize("hasRole('MANAGER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteVehicle(
             @Parameter(description = "ID of the vehicle to delete")

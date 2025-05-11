@@ -2,54 +2,45 @@
 
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { useUserContext } from "../context/UserContext"
 import "../styles/manager-navbar.css"
 
 export default function ManagerNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [manager, setManager] = useState(null)
+  const [manager, setManager] = useState({
+    name: "Admin Manager",
+    email: "admin@vanease.com",
+  })
   const navigate = useNavigate()
+  const { token, setToken } = useUserContext()
 
   useEffect(() => {
-    const fetchManagerDetails = async () => {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        navigate("/manager-login")
-        return
-      }
-
-      try {
-        const response = await fetch("http://localhost:8080/api/manager/details", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            localStorage.removeItem("token")
-            navigate("/manager-login")
-          } else {
-            throw new Error("Failed to fetch manager details")
-          }
-        }
-
-        const data = await response.json()
-        setManager(data)
-      } catch (error) {
-        console.error("Error fetching manager details:", error)
-        navigate("/manager-login")
-      }
+    // If no token is present, redirect to login
+    if (!token) {
+      navigate("/manager-login")
+      return
     }
 
-    fetchManagerDetails()
-  }, [navigate])
+    // Decode token to get manager info
+    try {
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]))
+      setManager({
+        name: tokenPayload.name || "Manager",
+        email: tokenPayload.sub || "manager@example.com"
+      })
+    } catch (error) {
+      console.error("Error decoding token:", error)
+      handleLogout()
+    }
+  }, [token, navigate])
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
   }
 
   const handleLogout = () => {
+    // Clear token from both context and localStorage
+    setToken("")
     localStorage.removeItem("token")
     navigate("/manager-login")
   }
@@ -78,6 +69,9 @@ export default function ManagerNavbar() {
             </Link>
             <Link to="/manager-bookings" className="manager-navbar-link">
               Manage Bookings
+            </Link>
+            <Link to="/manager-transactions" className="manager-navbar-link">
+              Transactions
             </Link>
           </div>
 

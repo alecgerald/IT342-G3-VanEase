@@ -12,6 +12,7 @@ import ManagerLogin from "./app/manager-login"
 import ManagerDashboard from "./app/manager-dashboard"
 import ManagerVans from "./app/manager-vans"
 import ManagerBookings from "./app/manager-bookings"
+import ManagerTransactions from "./app/manager-transactions"
 import "./styles/global.css"
 
 export default function App() {
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/manager-dashboard" element={<ManagerDashboard />} />
           <Route path="/manager-vans" element={<ManagerVans />} />
           <Route path="/manager-bookings" element={<ManagerBookings />} />
+          <Route path="/manager-transactions" element={<ManagerTransactions />} />
         </Routes>
       </Router>
     </UserProvider>

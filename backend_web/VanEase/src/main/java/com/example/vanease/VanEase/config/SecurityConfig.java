@@ -40,13 +40,23 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/vehicles/**").permitAll() // Allow public access to vehicles
+                .requestMatchers(HttpMethod.GET, "/api/vehicles/**").permitAll() // Allow public access to view vehicles
+
+                // Manager endpoints - specific operations
+                .requestMatchers(HttpMethod.POST, "/api/vehicles/**").hasRole("MANAGER")
+                .requestMatchers(HttpMethod.PUT, "/api/vehicles/**").hasRole("MANAGER")
+                .requestMatchers(HttpMethod.DELETE, "/api/vehicles/**").hasRole("MANAGER")
+                .requestMatchers("/api/manager/**").hasRole("MANAGER")
+
+                // Booking endpoints - allow both customers and managers
+                .requestMatchers(HttpMethod.POST, "/api/bookings/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/bookings/user/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/bookings/**").hasRole("MANAGER")
+                .requestMatchers(HttpMethod.PUT, "/api/bookings/**").hasRole("MANAGER")
+                .requestMatchers(HttpMethod.DELETE, "/api/bookings/**").hasRole("MANAGER")
 
                 // User endpoints
                 .requestMatchers("/api/user/**").authenticated()
-
-                // Manager endpoints
-                .requestMatchers("/api/vehicles/manage/**").hasRole("MANAGER") // Restrict management to MANAGER role
 
                 // All other requests
                 .anyRequest().authenticated()

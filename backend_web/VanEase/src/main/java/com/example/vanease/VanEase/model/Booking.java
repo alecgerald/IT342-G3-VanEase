@@ -3,6 +3,7 @@ package com.example.vanease.VanEase.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.math.BigDecimal;
@@ -25,6 +26,7 @@ public class Booking {
     @NotNull(message = "User is required")
     private User user;
 
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicle_id", nullable = false)
     @NotNull(message = "Vehicle is required")

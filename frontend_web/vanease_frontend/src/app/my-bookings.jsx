@@ -2,42 +2,34 @@
 
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { useUserContext } from "../context/UserContext"
 import "../styles/my-bookings.css"
 
 export default function MyBookings() {
   const navigate = useNavigate()
+  const { token } = useUserContext()
   const [activeTab, setActiveTab] = useState("all")
   const [bookings, setBookings] = useState([])
   const [allBookings, setAllBookings] = useState([])
   const [errorMessage, setErrorMessage] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
 
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const token = localStorage.getItem("token")
         if (!token) {
-          setErrorMessage("You must be logged in to view bookings.")
           navigate("/login")
           return
         }
 
         const response = await fetch("http://localhost:8080/api/bookings/user", {
-          method: "GET",
           headers: {
-            "Authorization": `Bearer ${token}`,
-          },
+            "Authorization": `Bearer ${token}`
+          }
         })
 
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            setErrorMessage("Unauthorized access. Please log in again.")
-            localStorage.removeItem("token")
-            navigate("/login")
-          } else {
-            const errorText = await response.text()
-            throw new Error(errorText || "Failed to fetch bookings")
-          }
-          return
+          throw new Error("Failed to fetch bookings")
         }
 
         const data = await response.json()
@@ -50,7 +42,7 @@ export default function MyBookings() {
     }
 
     fetchBookings()
-  }, [navigate])
+  }, [token, navigate])
 
   const filterBookings = (tab) => {
     setActiveTab(tab)
@@ -68,144 +60,205 @@ export default function MyBookings() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "confirmed":
-        return (
-          <span className="booking-status booking-status-confirmed">
-            <span className="booking-status-icon">✓</span> Confirmed
-          </span>
-        )
-      case "pending":
-        return (
-          <span className="booking-status booking-status-pending">
-            <span className="booking-status-icon">⏳</span> Pending
-          </span>
-        )
-      case "completed":
-        return (
-          <span className="booking-status booking-status-completed">
-            <span className="booking-status-icon">✓</span> Completed
-          </span>
-        )
-      case "cancelled":
-        return (
-          <span className="booking-status booking-status-cancelled">
-            <span className="booking-status-icon">✕</span> Cancelled
-          </span>
-        )
+      case "CONFIRMED":
+        return <span className="status-badge confirmed">✓ Confirmed</span>
+      case "PENDING":
+        return <span className="status-badge pending">⏳ Pending</span>
+      case "COMPLETED":
+        return <span className="status-badge completed">✓ Completed</span>
+      case "CANCELLED":
+        return <span className="status-badge cancelled">✕ Cancelled</span>
       default:
         return null
     }
   }
 
+  const handlePayWithPaypal = async (bookingId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/payments/paypal/${bookingId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to initiate PayPal payment")
+      }
+
+      const data = await response.json()
+      // Redirect to PayPal checkout URL
+      window.location.href = data.approvalUrl
+    } catch (error) {
+      console.error("Error initiating PayPal payment:", error)
+      setErrorMessage("Failed to initiate payment. Please try again.")
+    }
+  }
+
+  const handleCancelBooking = async (bookingId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/bookings/${bookingId}/cancel`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to cancel booking")
+      }
+
+      // Update the local state to reflect the cancellation
+      const updatedBookings = allBookings.map((booking) =>
+        booking.bookingId === bookingId ? { ...booking, status: "CANCELLED" } : booking
+      )
+
+      setAllBookings(updatedBookings)
+      setBookings(
+        activeTab === "all" ? updatedBookings : updatedBookings.filter((booking) => booking.status === activeTab)
+      )
+
+      setSuccessMessage("Booking has been cancelled successfully.")
+    } catch (error) {
+      console.error("Error cancelling booking:", error)
+      setErrorMessage("Failed to cancel booking. Please try again.")
+    }
+
+    // Clear success message after a delay
+    setTimeout(() => {
+      setSuccessMessage("")
+    }, 3000)
+  }
+
   return (
-    <main>
-      <div className="my-bookings-container">
-        <div className="my-bookings-header">
-          <h1 className="my-bookings-title">My Bookings</h1>
-          <p className="my-bookings-subtitle">View and manage your van rentals</p>
+    <main className="bookings-page">
+      <div className="bookings-container">
+        <div className="bookings-header">
+          <h1>My Bookings</h1>
+          <p>View and manage your van rentals</p>
         </div>
 
-        <div className="booking-tabs">
-          <button
-            className={`booking-tab ${activeTab === "all" ? "active" : ""}`}
-            onClick={() => filterBookings("all")}
-          >
+        <div className="bookings-tabs">
+          <button className={`tab-button ${activeTab === "all" ? "active" : ""}`} onClick={() => filterBookings("all")}>
             All Bookings
           </button>
           <button
-            className={`booking-tab ${activeTab === "confirmed" ? "active" : ""}`}
-            onClick={() => filterBookings("confirmed")}
+            className={`tab-button ${activeTab === "CONFIRMED" ? "active" : ""}`}
+            onClick={() => filterBookings("CONFIRMED")}
           >
             Confirmed
           </button>
           <button
-            className={`booking-tab ${activeTab === "pending" ? "active" : ""}`}
-            onClick={() => filterBookings("pending")}
+            className={`tab-button ${activeTab === "PENDING" ? "active" : ""}`}
+            onClick={() => filterBookings("PENDING")}
           >
             Pending
           </button>
           <button
-            className={`booking-tab ${activeTab === "completed" ? "active" : ""}`}
-            onClick={() => filterBookings("completed")}
+            className={`tab-button ${activeTab === "COMPLETED" ? "active" : ""}`}
+            onClick={() => filterBookings("COMPLETED")}
           >
             Completed
           </button>
           <button
-            className={`booking-tab ${activeTab === "cancelled" ? "active" : ""}`}
-            onClick={() => filterBookings("cancelled")}
+            className={`tab-button ${activeTab === "CANCELLED" ? "active" : ""}`}
+            onClick={() => filterBookings("CANCELLED")}
           >
             Cancelled
           </button>
         </div>
 
-        {errorMessage && <p className="error-message">{errorMessage}</p>}
+        {errorMessage && <div className="alert error">{errorMessage}</div>}
+        {successMessage && <div className="alert success">{successMessage}</div>}
 
         {bookings.length === 0 ? (
-          <div className="empty-bookings">
-            <p className="empty-bookings-text">No {activeTab !== "all" ? activeTab : ""} bookings found.</p>
-            <Link to="/van-list" className="btn btn-primary">
+          <div className="empty-state">
+            <p>No {activeTab !== "all" ? activeTab.toLowerCase() : ""} bookings found.</p>
+            <Link to="/van-list" className="primary-button">
               Book a Van Now
             </Link>
           </div>
         ) : (
-          <div>
+          <div className="bookings-list">
             {bookings.map((booking) => (
               <div key={booking.bookingId} className="booking-card">
-                <div className="booking-card-layout">
-                  <div className="booking-card-content">
-                    <div className="booking-card-header">
-                      <div>
-                        <h2 className="booking-card-title">
-                          Vehicle ID: {booking.vehicleId} {/* Display vehicleId */}
-                        </h2>
-                        <p className="booking-card-id">Booking ID: {booking.bookingId}</p>
-                      </div>
-                      <div>{getStatusBadge(booking.status)}</div>
-                    </div>
+                <div className="booking-header">
+                  <div className="booking-title">
+                    <h2>Booking #{booking.bookingId}</h2>
+                    {getStatusBadge(booking.status)}
+                  </div>
+                  <div className="booking-id">Vehicle ID: {booking.vehicleId}</div>
+                </div>
 
-                    <div className="booking-details">
-                      <div className="booking-detail">
-                        <span className="booking-detail-icon">📅</span>
-                        <div className="booking-detail-content">
-                          <p>Pickup Date</p>
-                          <p>{formatDate(booking.startDate)}</p>
-                        </div>
-                      </div>
-                      <div className="booking-detail">
-                        <span className="booking-detail-icon">📅</span>
-                        <div className="booking-detail-content">
-                          <p>Drop-off Date</p>
-                          <p>{formatDate(booking.endDate)}</p>
-                        </div>
-                      </div>
-                      <div className="booking-detail">
-                        <span className="booking-detail-icon">📍</span>
-                        <div className="booking-detail-content">
-                          <p>Pickup Location</p>
-                          <p>{booking.pickupLocation}</p>
-                        </div>
-                      </div>
-                      <div className="booking-detail">
-                        <span className="booking-detail-icon">📍</span>
-                        <div className="booking-detail-content">
-                          <p>Drop-off Location</p>
-                          <p>{booking.dropoffLocation}</p>
-                        </div>
+                <div className="booking-details">
+                  <div className="booking-dates">
+                    <div className="booking-date">
+                      <div className="date-icon">📅</div>
+                      <div className="date-info">
+                        <span className="date-label">Start Date</span>
+                        <span className="date-value">{formatDate(booking.startDate)}</span>
                       </div>
                     </div>
-
-                    <div className="booking-specs">
-                      <div className="booking-spec">
-                        <span className="booking-spec-label">Total Price:</span>
-                        <span>${booking.price}</span>
+                    <div className="booking-date">
+                      <div className="date-icon">📅</div>
+                      <div className="date-info">
+                        <span className="date-label">End Date</span>
+                        <span className="date-value">{formatDate(booking.endDate)}</span>
                       </div>
-                    </div>
-
-                    <div className="booking-card-footer">
-                      {booking.status === "pending" && <button className="btn btn-cancel">Cancel</button>}
-                      {booking.status === "completed" && <button className="btn btn-review">Leave Review</button>}
                     </div>
                   </div>
+
+                  <div className="booking-locations">
+                    <div className="booking-location">
+                      <div className="location-icon">📍</div>
+                      <div className="location-info">
+                        <span className="location-label">Pickup Location</span>
+                        <span className="location-value">{booking.pickupLocation}</span>
+                      </div>
+                    </div>
+                    <div className="booking-location">
+                      <div className="location-icon">📍</div>
+                      <div className="location-info">
+                        <span className="location-label">Dropoff Location</span>
+                        <span className="location-value">{booking.dropoffLocation}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="booking-price">
+                    <div className="price-icon">💰</div>
+                    <div className="price-info">
+                      <span className="price-label">Total Price</span>
+                      <span className="price-value">₱{booking.price}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="booking-actions">
+                  {booking.status === "PENDING" && (
+                    <>
+                      <button
+                        className="action-button pay"
+                        onClick={() => handlePayWithPaypal(booking.bookingId)}
+                      >
+                        Pay with PayPal
+                      </button>
+                      <button
+                        className="action-button cancel"
+                        onClick={() => handleCancelBooking(booking.bookingId)}
+                      >
+                        Cancel Booking
+                      </button>
+                    </>
+                  )}
+                  {booking.status === "CONFIRMED" && (
+                    <button
+                      className="action-button cancel"
+                      onClick={() => handleCancelBooking(booking.bookingId)}
+                    >
+                      Cancel Booking
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

@@ -6,6 +6,7 @@ import com.example.vanease.VanEase.model.Booking;
 import com.example.vanease.VanEase.model.BookingStatus;
 import com.example.vanease.VanEase.model.User;
 import com.example.vanease.VanEase.model.Vehicle;
+import com.example.vanease.VanEase.model.Payment;
 import com.example.vanease.VanEase.service.BookingService;
 import com.example.vanease.VanEase.security.service.JwtService;
 import com.example.vanease.VanEase.repository.UserRepository;
@@ -56,13 +57,13 @@ public class BookingController {
             }
 
             String token = authorizationHeader.replace("Bearer ", "");
-            String username = jwtService.extractUsername(token); // Extract username from token
+            String username = jwtService.extractUsername(token);
 
             if (username == null || username.isEmpty()) {
                 return ResponseEntity.status(400).body("Invalid token: Unable to extract username.");
             }
 
-            User user = userRepository.findByEmail(username) // Find user by email (username)
+            User user = userRepository.findByEmail(username)
                     .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + username));
 
             Vehicle vehicle = vehicleRepository.findById(bookingRequest.getVehicleId())
@@ -76,9 +77,22 @@ public class BookingController {
             booking.setUser(user);
             booking.setVehicle(vehicle);
             booking.setStartDate(bookingRequest.getStartDate());
-            booking.setEndDate(bookingRequest.getEndDate());
+            booking.setEndDate(bookingRequest.getStartDate().plusDays(bookingRequest.getTotalDays() - 1));
             booking.setPickupLocation(bookingRequest.getPickupLocation());
             booking.setDropoffLocation(bookingRequest.getDropoffLocation());
+            booking.setTotalDays(bookingRequest.getTotalDays());
+            booking.setTotalPrice(bookingRequest.getTotalPrice());
+
+            // Create payment record if payment method is provided
+            if (bookingRequest.getPaymentMethod() != null) {
+                Payment payment = new Payment();
+                payment.setBooking(booking);
+                payment.setAmount(bookingRequest.getTotalPrice().floatValue());
+                payment.setPaymentMethod(Payment.PaymentMethod.valueOf(bookingRequest.getPaymentMethod().toUpperCase()));
+                payment.setPaymentStatus(Payment.PaymentStatus.PENDING);
+                payment.setPaymentDate(LocalDate.now());
+                booking.setPayment(payment);
+            }
 
             Booking createdBooking = bookingService.createBooking(booking);
             return ResponseEntity.ok(createdBooking);

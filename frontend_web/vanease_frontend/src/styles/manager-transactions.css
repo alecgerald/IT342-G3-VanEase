@@ -1,0 +1,361 @@
+.manager-transactions-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+  
+  .manager-transactions-header {
+    margin-bottom: 2rem;
+  }
+  
+  .manager-transactions-header h1 {
+    font-size: 2rem;
+    color: #34572e;
+    margin-bottom: 0.5rem;
+  }
+  
+  .manager-transactions-header p {
+    color: #666;
+  }
+  
+  .transaction-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .transaction-tab {
+    padding: 0.75rem 1.25rem;
+    background: none;
+    border: none;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+  }
+  
+  .transaction-tab:hover {
+    background-color: #f3f4f6;
+    color: #34572e;
+  }
+  
+  .transaction-tab.active {
+    background-color: #34572e;
+    color: white;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #666;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  .transaction-table-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    overflow-x: auto;
+  }
+  
+  .transaction-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .transaction-table th,
+  .transaction-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .transaction-table th {
+    background-color: #f9f9f9;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .transaction-table tr:hover {
+    background-color: #f9f9f9;
+  }
+  
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .status-badge.completed {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+  
+  .status-badge.pending {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+  }
+  
+  .status-badge.refunded {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-size: 0.875rem;
+  }
+  
+  .btn-view {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+  
+  .btn-view:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+  
+  .btn-primary {
+    background-color: #34572e;
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background-color: #2a4625;
+  }
+  
+  .btn-secondary {
+    background-color: #f3f4f6;
+    color: #374151;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #e5e7eb;
+  }
+  
+  /* Receipt Modal Styles */
+  .receipt-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+  
+  .receipt-modal {
+    background-color: white;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.5rem;
+    color: #34572e;
+    margin: 0;
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+  }
+  
+  .close-button:hover {
+    background-color: #f3f4f6;
+  }
+  
+  .modal-content {
+    padding: 1.5rem;
+  }
+  
+  .receipt {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 2rem;
+    background-color: #fff;
+  }
+  
+  .receipt-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .receipt-logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #34572e;
+    margin-bottom: 0.5rem;
+  }
+  
+  .receipt-title {
+    font-size: 1.25rem;
+    color: #333;
+  }
+  
+  .receipt-details {
+    margin-bottom: 2rem;
+  }
+  
+  .receipt-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  
+  .receipt-label {
+    font-weight: 500;
+    color: #666;
+  }
+  
+  .receipt-value {
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .receipt-value.amount {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #34572e;
+  }
+  
+  .receipt-value.status-completed {
+    color: #10b981;
+  }
+  
+  .receipt-value.status-pending {
+    color: #d97706;
+  }
+  
+  .receipt-value.status-refunded {
+    color: #dc2626;
+  }
+  
+  .receipt-amount {
+    margin: 2rem 0;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+  }
+  
+  .receipt-footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+    text-align: center;
+    color: #666;
+    font-size: 0.875rem;
+  }
+  
+  .receipt-footer p {
+    margin: 0.25rem 0;
+  }
+  
+  .modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+  
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+  
+    .receipt-modal,
+    .receipt-modal * {
+      visibility: visible;
+    }
+  
+    .receipt-modal {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: auto;
+      box-shadow: none;
+    }
+  
+    .modal-header,
+    .modal-footer {
+      display: none;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .transaction-tabs {
+      justify-content: center;
+    }
+  
+    .transaction-tab {
+      flex: 1 0 auto;
+      text-align: center;
+      font-size: 0.875rem;
+      padding: 0.5rem;
+    }
+  
+    .transaction-table th,
+    .transaction-table td {
+      padding: 0.75rem 0.5rem;
+      font-size: 0.875rem;
+    }
+  
+    .modal-footer {
+      flex-direction: column;
+    }
+  
+    .modal-footer .btn {
+      width: 100%;
+    }
+  }
+  

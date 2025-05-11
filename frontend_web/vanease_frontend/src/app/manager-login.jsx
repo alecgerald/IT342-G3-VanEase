@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useUserContext } from "../context/UserContext"
 import "../styles/auth.css"
 
 export default function ManagerLogin() {
@@ -11,6 +12,7 @@ export default function ManagerLogin() {
   })
   const [error, setError] = useState("")
   const navigate = useNavigate()
+  const { setToken } = useUserContext()
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -40,7 +42,16 @@ export default function ManagerLogin() {
       }
 
       const data = await response.json()
-      localStorage.setItem("token", data.token) // Store the JWT token
+      
+      // Check if the token contains the MANAGER role
+      const tokenPayload = JSON.parse(atob(data.token.split('.')[1]))
+      if (tokenPayload.role !== 'MANAGER') {
+        setError("Access denied. Manager credentials required.")
+        return
+      }
+
+      setToken(data.token) // Store the JWT token in context
+      localStorage.setItem("token", data.token) // Also store in localStorage
       navigate("/manager-dashboard") // Redirect to the manager dashboard
     } catch (err) {
       console.error("Error during login:", err)

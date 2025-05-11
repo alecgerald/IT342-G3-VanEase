@@ -4,13 +4,15 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.Key;
 import java.util.Date;
 
 @Service
 public class JwtService {
-
+    private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
     private static final String SECRET_KEY = "your-256-bit-secret-key-for-jwt-generation"; // Replace with a secure key
     private static final long EXPIRATION_TIME = 86400000; // 1 day in milliseconds
 
@@ -25,15 +27,6 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractUsername(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
-    }
-
     public Integer extractUserId(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -43,37 +36,76 @@ public class JwtService {
         return claims.get("userId", Integer.class); // Ensure the token contains a "userId" claim
     }
 
-    public boolean validateToken(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
-    }
-
-    private boolean isTokenExpired(String token) {
-        Date expiration = Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getExpiration();
-        return expiration.before(new Date());
-    }
-
     public String generateTokenWithRole(String username, String role) {
         return Jwts.builder()
                 .setSubject(username)
-                .claim("role", role) // Add role claim
+                .claim("role", role.toUpperCase())  // Ensure role is uppercase
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
+    public String extractUsername(String token) {
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getSubject();
+        } catch (Exception e) {
+            logger.error("Error extracting username from token: {}", e.getMessage());
+            throw e;
+        }
+    }
+
     public String extractRole(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("role", String.class);
+        try {
+            String role = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .get("role", String.class);
+            logger.debug("Extracted role from token: {}", role);
+            return role != null ? role.toUpperCase() : "CUSTOMER";  // Default to CUSTOMER if no role found
+        } catch (Exception e) {
+            logger.error("Error extracting role from token: {}", e.getMessage());
+            return "CUSTOMER";  // Default to CUSTOMER on error
+        }
+    }
+
+    public boolean validateToken(String token, UserDetails userDetails) {
+        try {
+            final String username = extractUsername(token);
+            final String role = extractRole(token);
+            final boolean isValid = username.equals(userDetails.getUsername()) && 
+                                  !isTokenExpired(token) &&
+                                  (userDetails.getAuthorities().stream()
+                                      .anyMatch(auth -> auth.getAuthority().equals("ROLE_" + role)) ||
+                                   role.equals("CUSTOMER"));  // Allow CUSTOMER role by default
+            
+            logger.debug("Token validation for user {}: {}", username, isValid);
+            return isValid;
+        } catch (Exception e) {
+            logger.error("Error validating token: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean isTokenExpired(String token) {
+        try {
+            Date expiration = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getExpiration();
+            return expiration.before(new Date());
+        } catch (Exception e) {
+            logger.error("Error checking token expiration: {}", e.getMessage());
+            return true;
+        }
     }
 }

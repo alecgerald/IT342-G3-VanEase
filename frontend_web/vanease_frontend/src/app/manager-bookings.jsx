@@ -1,137 +1,51 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import { useUserContext } from "../context/UserContext"
 import ManagerNavbar from "../components/ManagerNavbar"
 import "../styles/manager-bookings.css"
 
 export default function ManagerBookings() {
-  // Static mock data for bookings
-  const mockBookings = [
-    {
-      id: "B001",
-      userId: "U123",
-      userName: "John Smith",
-      userEmail: "john@example.com",
-      userPhone: "555-123-4567",
-      vanId: "V001",
-      model: "Transit Connect",
-      brand: "Ford",
-      year: 2023,
-      plateNumber: "ABC-1234",
-      rentalRate: 59,
-      image: "/placeholder.svg?height=300&width=500",
-      pickupLocation: "Downtown",
-      dropoffLocation: "Airport",
-      pickupDate: "2023-08-15",
-      dropoffDate: "2023-08-20",
-      status: "pending",
-      price: 295,
-      paymentStatus: "pending",
-      notes: "Customer requested child seat",
-      createdAt: "2023-08-01T10:30:00Z",
-    },
-    {
-      id: "B002",
-      userId: "U124",
-      userName: "Sarah Johnson",
-      userEmail: "sarah@example.com",
-      userPhone: "555-987-6543",
-      vanId: "V002",
-      model: "Sprinter",
-      brand: "Mercedes-Benz",
-      year: 2022,
-      plateNumber: "XYZ-5678",
-      rentalRate: 89,
-      image: "/placeholder.svg?height=300&width=500",
-      pickupLocation: "Airport",
-      dropoffLocation: "Downtown",
-      pickupDate: "2023-08-18",
-      dropoffDate: "2023-08-25",
-      status: "confirmed",
-      price: 623,
-      paymentStatus: "paid",
-      notes: "",
-      createdAt: "2023-08-02T14:45:00Z",
-    },
-    {
-      id: "B003",
-      userId: "U125",
-      userName: "Michael Brown",
-      userEmail: "michael@example.com",
-      userPhone: "555-456-7890",
-      vanId: "V003",
-      model: "ProMaster",
-      brand: "Ram",
-      year: 2023,
-      plateNumber: "DEF-9012",
-      rentalRate: 75,
-      image: "/placeholder.svg?height=300&width=500",
-      pickupLocation: "Downtown",
-      dropoffLocation: "Downtown",
-      pickupDate: "2023-08-10",
-      dropoffDate: "2023-08-12",
-      status: "completed",
-      price: 150,
-      paymentStatus: "paid",
-      notes: "Customer requested early pickup",
-      createdAt: "2023-07-25T09:15:00Z",
-    },
-    {
-      id: "B004",
-      userId: "U126",
-      userName: "Emily Davis",
-      userEmail: "emily@example.com",
-      userPhone: "555-789-0123",
-      vanId: "V004",
-      model: "Express",
-      brand: "Chevrolet",
-      year: 2021,
-      plateNumber: "GHI-3456",
-      rentalRate: 65,
-      image: "/placeholder.svg?height=300&width=500",
-      pickupLocation: "Airport",
-      dropoffLocation: "Airport",
-      pickupDate: "2023-08-22",
-      dropoffDate: "2023-08-24",
-      status: "pending",
-      price: 130,
-      paymentStatus: "pending",
-      notes: "",
-      createdAt: "2023-08-05T16:20:00Z",
-    },
-    {
-      id: "B005",
-      userId: "U127",
-      userName: "David Wilson",
-      userEmail: "david@example.com",
-      userPhone: "555-234-5678",
-      vanId: "V005",
-      model: "Transit",
-      brand: "Ford",
-      year: 2022,
-      plateNumber: "JKL-7890",
-      rentalRate: 70,
-      image: "/placeholder.svg?height=300&width=500",
-      pickupLocation: "Downtown",
-      dropoffLocation: "Airport",
-      pickupDate: "2023-08-28",
-      dropoffDate: "2023-09-02",
-      status: "cancelled",
-      price: 350,
-      paymentStatus: "refunded",
-      notes: "Customer cancelled due to change of plans",
-      createdAt: "2023-08-03T11:10:00Z",
-    },
-  ]
-
-  // Minimal state for UI functionality
-  const [activeTab, setActiveTab] = useState("pending")
+  const navigate = useNavigate()
+  const { token } = useUserContext()
+  const [bookings, setBookings] = useState([])
+  const [activeTab, setActiveTab] = useState("all")
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [message, setMessage] = useState({ text: "", type: "" })
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        if (!token) {
+          navigate("/manager-login")
+          return
+        }
+
+        const response = await fetch("http://localhost:8080/api/bookings", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch bookings")
+        }
+
+        const data = await response.json()
+        setBookings(data)
+      } catch (error) {
+        console.error("Error fetching bookings:", error)
+        setMessage({ text: "Failed to load bookings", type: "error" })
+      }
+    }
+
+    fetchBookings()
+  }, [token, navigate])
 
   // Filter bookings based on active tab
-  const filteredBookings =
-    activeTab === "all" ? mockBookings : mockBookings.filter((booking) => booking.status === activeTab)
+  const filteredBookings = activeTab === "all" ? bookings : bookings.filter((booking) => booking.status === activeTab)
 
   const handleTabChange = (tab) => {
     setActiveTab(tab)
@@ -147,8 +61,101 @@ export default function ManagerBookings() {
   }
 
   const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "short", day: "numeric" }
+    const options = { year: "numeric", month: "long", day: "numeric" }
     return new Date(dateString).toLocaleDateString(undefined, options)
+  }
+
+  const handleAcceptBooking = async (bookingId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/bookings/${bookingId}/confirm`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to confirm booking")
+      }
+
+      const updatedBooking = await response.json()
+      setBookings(bookings.map(booking => 
+        booking.bookingId === bookingId ? updatedBooking : booking
+      ))
+
+      if (selectedBooking && selectedBooking.bookingId === bookingId) {
+        setSelectedBooking(updatedBooking)
+      }
+
+      setMessage({ text: `Booking ${bookingId} has been confirmed.`, type: "success" })
+    } catch (error) {
+      console.error("Error confirming booking:", error)
+      setMessage({ text: "Failed to confirm booking", type: "error" })
+    }
+
+    setTimeout(() => setMessage({ text: "", type: "" }), 3000)
+  }
+
+  const handleRejectBooking = async (bookingId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/bookings/${bookingId}/cancel`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to cancel booking")
+      }
+
+      const updatedBooking = await response.json()
+      setBookings(bookings.map(booking => 
+        booking.bookingId === bookingId ? updatedBooking : booking
+      ))
+
+      if (selectedBooking && selectedBooking.bookingId === bookingId) {
+        setSelectedBooking(updatedBooking)
+      }
+
+      setMessage({ text: `Booking ${bookingId} has been cancelled.`, type: "error" })
+    } catch (error) {
+      console.error("Error cancelling booking:", error)
+      setMessage({ text: "Failed to cancel booking", type: "error" })
+    }
+
+    setTimeout(() => setMessage({ text: "", type: "" }), 3000)
+  }
+
+  const handleCompleteBooking = async (bookingId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/bookings/${bookingId}/complete`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to complete booking")
+      }
+
+      const updatedBooking = await response.json()
+      setBookings(bookings.map(booking => 
+        booking.bookingId === bookingId ? updatedBooking : booking
+      ))
+
+      if (selectedBooking && selectedBooking.bookingId === bookingId) {
+        setSelectedBooking(updatedBooking)
+      }
+
+      setMessage({ text: `Booking ${bookingId} has been marked as completed.`, type: "success" })
+    } catch (error) {
+      console.error("Error completing booking:", error)
+      setMessage({ text: "Failed to complete booking", type: "error" })
+    }
+
+    setTimeout(() => setMessage({ text: "", type: "" }), 3000)
   }
 
   return (
@@ -160,6 +167,8 @@ export default function ManagerBookings() {
           <p>View and manage customer bookings</p>
         </div>
 
+        {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
+
         <div className="booking-tabs">
           <button
             className={`booking-tab ${activeTab === "all" ? "active" : ""}`}
@@ -168,26 +177,26 @@ export default function ManagerBookings() {
             All Bookings
           </button>
           <button
-            className={`booking-tab ${activeTab === "pending" ? "active" : ""}`}
-            onClick={() => handleTabChange("pending")}
+            className={`booking-tab ${activeTab === "PENDING" ? "active" : ""}`}
+            onClick={() => handleTabChange("PENDING")}
           >
             Pending
           </button>
           <button
-            className={`booking-tab ${activeTab === "confirmed" ? "active" : ""}`}
-            onClick={() => handleTabChange("confirmed")}
+            className={`booking-tab ${activeTab === "CONFIRMED" ? "active" : ""}`}
+            onClick={() => handleTabChange("CONFIRMED")}
           >
             Confirmed
           </button>
           <button
-            className={`booking-tab ${activeTab === "completed" ? "active" : ""}`}
-            onClick={() => handleTabChange("completed")}
+            className={`booking-tab ${activeTab === "COMPLETED" ? "active" : ""}`}
+            onClick={() => handleTabChange("COMPLETED")}
           >
             Completed
           </button>
           <button
-            className={`booking-tab ${activeTab === "cancelled" ? "active" : ""}`}
-            onClick={() => handleTabChange("cancelled")}
+            className={`booking-tab ${activeTab === "CANCELLED" ? "active" : ""}`}
+            onClick={() => handleTabChange("CANCELLED")}
           >
             Cancelled
           </button>
@@ -195,7 +204,7 @@ export default function ManagerBookings() {
 
         {filteredBookings.length === 0 ? (
           <div className="empty-state">
-            <p>No {activeTab !== "all" ? activeTab : ""} bookings found.</p>
+            <p>No {activeTab !== "all" ? activeTab.toLowerCase() : ""} bookings found.</p>
           </div>
         ) : (
           <div className="booking-table-container">
@@ -213,44 +222,76 @@ export default function ManagerBookings() {
               </thead>
               <tbody>
                 {filteredBookings.map((booking) => (
-                  <tr key={booking.id}>
-                    <td>{booking.id}</td>
+                  <tr key={booking.bookingId}>
+                    <td>{booking.bookingId}</td>
                     <td>
                       <div className="customer-info">
                         <span className="customer-name">{booking.userName}</span>
                         <span className="customer-email">{booking.userEmail}</span>
+                        <span className="customer-phone">{booking.userPhone}</span>
                       </div>
                     </td>
                     <td>
                       <div className="vehicle-info">
-                        <span className="vehicle-name">
-                          {booking.brand} {booking.model} ({booking.year})
+                        <span className="vehicle-model">
+                          {booking.brand} {booking.model}
                         </span>
                         <span className="vehicle-plate">{booking.plateNumber}</span>
                       </div>
                     </td>
                     <td>
-                      <div className="booking-dates">
-                        <span>{formatDate(booking.pickupDate)}</span>
-                        <span className="date-separator">to</span>
-                        <span>{formatDate(booking.dropoffDate)}</span>
+                      <div className="date-info">
+                        <span className="date-label">From:</span>
+                        <span className="date-value">{formatDate(booking.startDate)}</span>
+                        <span className="date-label">To:</span>
+                        <span className="date-value">{formatDate(booking.endDate)}</span>
                       </div>
                     </td>
                     <td>
-                      <span className={`status-badge ${booking.status}`}>
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      <span className={`status-badge ${booking.status.toLowerCase()}`}>
+                        {booking.status}
                       </span>
                     </td>
                     <td>
-                      <span className={`payment-badge ${booking.paymentStatus}`}>
-                        {booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1)}
-                      </span>
+                      <div className="payment-info">
+                        <span className="payment-amount">₱{booking.price}</span>
+                        <span className={`payment-status ${booking.paymentStatus.toLowerCase()}`}>
+                          {booking.paymentStatus}
+                        </span>
+                      </div>
                     </td>
                     <td>
                       <div className="action-buttons">
-                        <button className="btn btn-view" onClick={() => handleViewBooking(booking)}>
+                        <button
+                          className="btn btn-view"
+                          onClick={() => handleViewBooking(booking)}
+                        >
                           View
                         </button>
+                        {booking.status === "PENDING" && (
+                          <>
+                            <button
+                              className="btn btn-confirm"
+                              onClick={() => handleAcceptBooking(booking.bookingId)}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              className="btn btn-reject"
+                              onClick={() => handleRejectBooking(booking.bookingId)}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        {booking.status === "CONFIRMED" && (
+                          <button
+                            className="btn btn-complete"
+                            onClick={() => handleCompleteBooking(booking.bookingId)}
+                          >
+                            Complete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -261,112 +302,110 @@ export default function ManagerBookings() {
         )}
 
         {isModalOpen && selectedBooking && (
-          <div className="booking-modal-overlay" onClick={handleCloseModal}>
-            <div className="booking-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-overlay">
+            <div className="modal-content">
               <div className="modal-header">
                 <h2>Booking Details</h2>
-                <button className="close-button" onClick={handleCloseModal}>
-                  ✕
+                <button className="modal-close" onClick={handleCloseModal}>
+                  ×
                 </button>
               </div>
-              <div className="modal-content">
-                <div className="booking-status-bar">
-                  <div className="booking-id">Booking #{selectedBooking.id}</div>
-                  <div className="booking-status">
-                    <span className={`status-badge ${selectedBooking.status}`}>
-                      {selectedBooking.status.charAt(0).toUpperCase() + selectedBooking.status.slice(1)}
-                    </span>
-                    <span className={`payment-badge ${selectedBooking.paymentStatus}`}>
-                      {selectedBooking.paymentStatus.charAt(0).toUpperCase() + selectedBooking.paymentStatus.slice(1)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="booking-sections">
-                  <div className="booking-section">
+              <div className="modal-body">
+                <div className="booking-details">
+                  <div className="detail-section">
                     <h3>Customer Information</h3>
-                    <div className="info-grid">
-                      <div className="info-item">
-                        <span className="info-label">Name</span>
-                        <span className="info-value">{selectedBooking.userName}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Email</span>
-                        <span className="info-value">{selectedBooking.userEmail}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Phone</span>
-                        <span className="info-value">{selectedBooking.userPhone}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Booking Date</span>
-                        <span className="info-value">{formatDate(selectedBooking.createdAt)}</span>
-                      </div>
-                    </div>
+                    <p>
+                      <strong>Name:</strong> {selectedBooking.userName}
+                    </p>
+                    <p>
+                      <strong>Email:</strong> {selectedBooking.userEmail}
+                    </p>
+                    <p>
+                      <strong>Phone:</strong> {selectedBooking.userPhone}
+                    </p>
                   </div>
 
-                  <div className="booking-section">
-                    <h3>Vehicle Details</h3>
-                    <div className="vehicle-details">
-                      <img
-                        src={selectedBooking.image || "/placeholder.svg"}
-                        alt={`${selectedBooking.brand} ${selectedBooking.model}`}
-                        className="vehicle-image"
-                      />
-                      <div className="info-grid">
-                        <div className="info-item">
-                          <span className="info-label">Vehicle</span>
-                          <span className="info-value">
-                            {selectedBooking.brand} {selectedBooking.model} ({selectedBooking.year})
-                          </span>
-                        </div>
-                        <div className="info-item">
-                          <span className="info-label">License Plate</span>
-                          <span className="info-value">{selectedBooking.plateNumber}</span>
-                        </div>
-                        <div className="info-item">
-                          <span className="info-label">Daily Rate</span>
-                          <span className="info-value">₱{selectedBooking.rentalRate}/day</span>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="detail-section">
+                    <h3>Vehicle Information</h3>
+                    <p>
+                      <strong>Model:</strong> {selectedBooking.brand} {selectedBooking.model}
+                    </p>
+                    <p>
+                      <strong>Plate Number:</strong> {selectedBooking.plateNumber}
+                    </p>
+                    <p>
+                      <strong>Year:</strong> {selectedBooking.year}
+                    </p>
                   </div>
 
-                  <div className="booking-section">
-                    <h3>Booking Details</h3>
-                    <div className="info-grid">
-                      <div className="info-item">
-                        <span className="info-label">Pickup Date</span>
-                        <span className="info-value">{formatDate(selectedBooking.pickupDate)}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Dropoff Date</span>
-                        <span className="info-value">{formatDate(selectedBooking.dropoffDate)}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Pickup Location</span>
-                        <span className="info-value">{selectedBooking.pickupLocation}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Dropoff Location</span>
-                        <span className="info-value">{selectedBooking.dropoffLocation}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Total Price</span>
-                        <span className="info-value">₱{selectedBooking.price}</span>
-                      </div>
-                    </div>
+                  <div className="detail-section">
+                    <h3>Booking Information</h3>
+                    <p>
+                      <strong>Start Date:</strong> {formatDate(selectedBooking.startDate)}
+                    </p>
+                    <p>
+                      <strong>End Date:</strong> {formatDate(selectedBooking.endDate)}
+                    </p>
+                    <p>
+                      <strong>Total Days:</strong> {selectedBooking.totalDays}
+                    </p>
+                    <p>
+                      <strong>Total Price:</strong> ₱{selectedBooking.price}
+                    </p>
+                    <p>
+                      <strong>Status:</strong>{" "}
+                      <span className={`status-badge ${selectedBooking.status.toLowerCase()}`}>
+                        {selectedBooking.status}
+                      </span>
+                    </p>
+                    <p>
+                      <strong>Payment Method:</strong>{" "}
+                      {selectedBooking.paymentMethod === "onsite" ? "Pay at Office" : "PayPal"}
+                    </p>
+                    <p>
+                      <strong>Payment Status:</strong>{" "}
+                      <span className={`payment-status ${selectedBooking.paymentStatus.toLowerCase()}`}>
+                        {selectedBooking.paymentStatus}
+                      </span>
+                    </p>
                   </div>
 
-                  {selectedBooking.notes && (
-                    <div className="booking-section">
-                      <h3>Notes</h3>
-                      <p className="booking-notes">{selectedBooking.notes}</p>
-                    </div>
-                  )}
+                  <div className="detail-section">
+                    <h3>Location Information</h3>
+                    <p>
+                      <strong>Pickup Location:</strong> {selectedBooking.pickupLocation}
+                    </p>
+                    <p>
+                      <strong>Dropoff Location:</strong> {selectedBooking.dropoffLocation}
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="modal-footer">
+                {selectedBooking.status === "PENDING" && (
+                  <>
+                    <button
+                      className="btn btn-confirm"
+                      onClick={() => handleAcceptBooking(selectedBooking.bookingId)}
+                    >
+                      Accept Booking
+                    </button>
+                    <button
+                      className="btn btn-reject"
+                      onClick={() => handleRejectBooking(selectedBooking.bookingId)}
+                    >
+                      Reject Booking
+                    </button>
+                  </>
+                )}
+                {selectedBooking.status === "CONFIRMED" && (
+                  <button
+                    className="btn btn-complete"
+                    onClick={() => handleCompleteBooking(selectedBooking.bookingId)}
+                  >
+                    Mark as Completed
+                  </button>
+                )}
                 <button className="btn btn-secondary" onClick={handleCloseModal}>
                   Close
                 </button>
