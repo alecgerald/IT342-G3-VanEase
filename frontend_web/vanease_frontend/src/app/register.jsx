@@ -52,7 +52,7 @@ export default function Register() {
     try {
       console.log("Request payload:", formData) // Keeping debugging log
 
-      const response = await fetch("http://it342-g3-vanease.onrender.com/api/auth/register", {
+      const response = await fetch("https://it342-g3-vanease.onrender.com/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
