@@ -56,7 +56,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 
                 if (jwtService.validateToken(jwt, userDetails)) {
                     List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                    authorities.add(new SimpleGrantedAuthority(role));
                     
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
@@ -67,15 +67,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                     
                     logger.debug("Authentication successful for user: {} with role: {}", username, role);
+                    logger.debug("User authorities: {}", authorities);
                 } else {
                     logger.warn("Token validation failed for user: {}", username);
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.getWriter().write("Invalid token");
                     return;
                 }
+            } else {
+                logger.debug("No authentication needed or already authenticated");
             }
         } catch (Exception e) {
-            logger.error("Error processing JWT: {}", e.getMessage());
+            logger.error("Error processing JWT: {}", e.getMessage(), e);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Authentication failed");
             return;

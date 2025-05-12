@@ -37,12 +37,18 @@ export default function ManagerVans() {
           Authorization: `Bearer ${token}`,
         },
       })
-      if (!response.ok) throw new Error("Failed to fetch vehicles")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Failed to fetch vehicles" }))
+        throw new Error(errorData.message || "Failed to fetch vehicles")
+      }
       const data = await response.json()
+      if (!Array.isArray(data)) {
+        throw new Error("Invalid response format: expected an array of vehicles")
+      }
       setVehicles(data)
     } catch (error) {
       console.error("Error fetching vehicles:", error)
-      setMessage({ text: "Failed to load vehicles", type: "error" })
+      setMessage({ text: error.message || "Failed to load vehicles", type: "error" })
     }
   }
 
@@ -95,10 +101,42 @@ export default function ManagerVans() {
     e.preventDefault()
 
     try {
+      // Validate required fields
+      if (!formData.brand || !formData.model || !formData.year || !formData.rentalRate || 
+          !formData.plateNumber || formData.availability === undefined || !formData.seatingCapacity || 
+          !formData.transmission) {
+        throw new Error("All fields are required")
+      }
+
+      // Convert and validate data types
+      const year = parseInt(formData.year)
+      if (isNaN(year) || year < 1900 || year > new Date().getFullYear()) {
+        throw new Error("Invalid year")
+      }
+
+      const rentalRate = parseFloat(formData.rentalRate)
+      if (isNaN(rentalRate) || rentalRate <= 0) {
+        throw new Error("Invalid rental rate")
+      }
+
+      const seatingCapacity = parseInt(formData.seatingCapacity)
+      if (isNaN(seatingCapacity) || seatingCapacity <= 0) {
+        throw new Error("Invalid seating capacity")
+      }
+
       const formDataToSend = new FormData()
-      Object.keys(formData).forEach((key) => {
-        formDataToSend.append(key, formData[key])
-      })
+      
+      // Add each field with proper type conversion
+      formDataToSend.append('brand', formData.brand.trim())
+      formDataToSend.append('model', formData.model.trim())
+      formDataToSend.append('year', year.toString())
+      formDataToSend.append('rentalRate', rentalRate.toString())
+      formDataToSend.append('plateNumber', formData.plateNumber.trim())
+      formDataToSend.append('availability', formData.availability.toString())
+      formDataToSend.append('seatingCapacity', seatingCapacity.toString())
+      formDataToSend.append('transmission', formData.transmission.trim())
+
+      // Add the image if it exists
       if (imageFile) {
         formDataToSend.append("image", imageFile)
       }
@@ -116,7 +154,15 @@ export default function ManagerVans() {
         body: formDataToSend,
       })
 
-      if (!response.ok) throw new Error("Failed to save vehicle")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Failed to save vehicle" }))
+        throw new Error(errorData.message || "Failed to save vehicle")
+      }
+
+      const updatedVehicle = await response.json()
+      if (!updatedVehicle) {
+        throw new Error("Invalid response format: expected vehicle data")
+      }
 
       setMessage({
         text: `Vehicle ${editingVehicle ? "updated" : "added"} successfully!`,
@@ -128,7 +174,7 @@ export default function ManagerVans() {
     } catch (error) {
       console.error("Error saving vehicle:", error)
       setMessage({
-        text: `Failed to ${editingVehicle ? "update" : "add"} vehicle`,
+        text: error.message || `Failed to ${editingVehicle ? "update" : "add"} vehicle`,
         type: "error",
       })
     }
@@ -156,6 +202,7 @@ export default function ManagerVans() {
   }
 
   const handleDelete = async (vehicleId) => {
+    if (!vehicleId) return
     if (window.confirm("Are you sure you want to delete this vehicle?")) {
       try {
         const response = await fetch(`http://localhost:8080/api/vehicles/${vehicleId}`, {
@@ -165,13 +212,16 @@ export default function ManagerVans() {
           },
         })
 
-        if (!response.ok) throw new Error("Failed to delete vehicle")
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: "Failed to delete vehicle" }))
+          throw new Error(errorData.message || "Failed to delete vehicle")
+        }
 
         setMessage({ text: "Vehicle deleted successfully!", type: "success" })
         fetchVehicles()
       } catch (error) {
         console.error("Error deleting vehicle:", error)
-        setMessage({ text: "Failed to delete vehicle", type: "error" })
+        setMessage({ text: error.message || "Failed to delete vehicle", type: "error" })
       }
 
       setTimeout(() => {
@@ -181,8 +231,13 @@ export default function ManagerVans() {
   }
 
   const toggleAvailability = async (vehicleId) => {
+    if (!vehicleId) return
     try {
-      const vehicle = vehicles.find((v) => v.vehicleId === vehicleId)
+      const vehicle = vehicles.find((v) => v?.vehicleId === vehicleId)
+      if (!vehicle) {
+        throw new Error("Vehicle not found")
+      }
+
       const response = await fetch(`http://localhost:8080/api/vehicles/${vehicleId}`, {
         method: "PUT",
         headers: {
@@ -195,7 +250,15 @@ export default function ManagerVans() {
         }),
       })
 
-      if (!response.ok) throw new Error("Failed to update vehicle availability")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Failed to update vehicle availability" }))
+        throw new Error(errorData.message || "Failed to update vehicle availability")
+      }
+
+      const updatedVehicle = await response.json()
+      if (!updatedVehicle) {
+        throw new Error("Invalid response format: expected vehicle data")
+      }
 
       setMessage({
         text: `Vehicle marked as ${!vehicle.availability ? "available" : "unavailable"}!`,
@@ -204,7 +267,7 @@ export default function ManagerVans() {
       fetchVehicles()
     } catch (error) {
       console.error("Error updating vehicle availability:", error)
-      setMessage({ text: "Failed to update vehicle availability", type: "error" })
+      setMessage({ text: error.message || "Failed to update vehicle availability", type: "error" })
     }
 
     setTimeout(() => {

@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.math.BigDecimal;
@@ -21,15 +23,16 @@ public class Booking {
     @Column(name = "booking_id")
     private Integer bookingId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     @NotNull(message = "User is required")
+    @JsonIgnoreProperties({"bookings", "password"})
     private User user;
 
-    @JsonBackReference
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "vehicle_id", nullable = false)
     @NotNull(message = "Vehicle is required")
+    @JsonIgnoreProperties({"bookings"})
     private Vehicle vehicle;
 
     @Column(name = "start_date", nullable = false)
@@ -60,7 +63,8 @@ public class Booking {
     @Column(name = "total_price", precision = 10, scale = 2)
     private BigDecimal totalPrice;
 
-    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonIgnoreProperties({"booking"})
     private Payment payment;
 
     @PrePersist

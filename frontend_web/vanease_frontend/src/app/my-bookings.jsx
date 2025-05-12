@@ -237,12 +237,16 @@ export default function MyBookings() {
                 <div className="booking-actions">
                   {booking.status === "PENDING" && (
                     <>
-                      <button
-                        className="action-button pay"
-                        onClick={() => handlePayWithPaypal(booking.bookingId)}
-                      >
-                        Pay with PayPal
-                      </button>
+                      {booking.paymentMethod === "paypal" ? (
+                        <button
+                          className="action-button pay"
+                          onClick={() => handlePayWithPaypal(booking.bookingId)}
+                        >
+                          Pay with PayPal
+                        </button>
+                      ) : (
+                        <span className="info-message">Payment will be collected on pickup</span>
+                      )}
                       <button
                         className="action-button cancel"
                         onClick={() => handleCancelBooking(booking.bookingId)}
@@ -252,12 +256,7 @@ export default function MyBookings() {
                     </>
                   )}
                   {booking.status === "CONFIRMED" && (
-                    <button
-                      className="action-button cancel"
-                      onClick={() => handleCancelBooking(booking.bookingId)}
-                    >
-                      Cancel Booking
-                    </button>
+                    <span className="info-message">Your van is on its way!</span>
                   )}
                 </div>
               </div>

@@ -43,9 +43,9 @@ export default function ManagerLogin() {
 
       const data = await response.json()
       
-      // Check if the token contains the MANAGER role
+      // Check if the token contains the ROLE_MANAGER role
       const tokenPayload = JSON.parse(atob(data.token.split('.')[1]))
-      if (tokenPayload.role !== 'MANAGER') {
+      if (tokenPayload.role !== 'ROLE_MANAGER') {
         setError("Access denied. Manager credentials required.")
         return
       }

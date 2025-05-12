@@ -157,7 +157,6 @@ export default function BookVan() {
       if (!response.ok) {
         if (response.status === 403) {
           setErrorMessage("You don't have permission to make bookings. Please log in as a customer.")
-          navigate("/login")
           return
         }
         const errorText = await response.text()

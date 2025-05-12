@@ -39,7 +39,7 @@ public class JwtService {
     public String generateTokenWithRole(String username, String role) {
         return Jwts.builder()
                 .setSubject(username)
-                .claim("role", role.toUpperCase())  // Ensure role is uppercase
+                .claim("role", role)  // Role already includes ROLE_ prefix from CustomUserDetailsService
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -69,10 +69,10 @@ public class JwtService {
                     .getBody()
                     .get("role", String.class);
             logger.debug("Extracted role from token: {}", role);
-            return role != null ? role.toUpperCase() : "CUSTOMER";  // Default to CUSTOMER if no role found
+            return role != null ? role : "ROLE_CUSTOMER";  // Return the role as is
         } catch (Exception e) {
             logger.error("Error extracting role from token: {}", e.getMessage());
-            return "CUSTOMER";  // Default to CUSTOMER on error
+            return "ROLE_CUSTOMER";  // Default to ROLE_CUSTOMER on error
         }
     }
 
@@ -82,9 +82,8 @@ public class JwtService {
             final String role = extractRole(token);
             final boolean isValid = username.equals(userDetails.getUsername()) && 
                                   !isTokenExpired(token) &&
-                                  (userDetails.getAuthorities().stream()
-                                      .anyMatch(auth -> auth.getAuthority().equals("ROLE_" + role)) ||
-                                   role.equals("CUSTOMER"));  // Allow CUSTOMER role by default
+                                  userDetails.getAuthorities().stream()
+                                      .anyMatch(auth -> auth.getAuthority().equals(role));
             
             logger.debug("Token validation for user {}: {}", username, isValid);
             return isValid;

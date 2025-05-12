@@ -237,12 +237,15 @@ export default function Login() {
           </div>
 
           <div className="auth-footer">
-            <p>
-              Don't have an account?{" "}
-              <Link to="/register" className="auth-link">
-                Register
+            <div className="text-sm">
+              <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+                Don't have an account? Register here
               </Link>
-            </p>
+              <span className="mx-2">|</span>
+              <Link to="/register-manager" className="font-medium text-indigo-600 hover:text-indigo-500">
+                Register as Manager
+              </Link>
+            </div>
           </div>
         </div>
       </div>

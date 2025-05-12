@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { UserProvider } from "./context/UserContext" // Import UserProvider
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import Navbar from "./components/Navbar"
 import Home from "./app/home"
 import VanList from "./app/van-list"
@@ -13,12 +15,14 @@ import ManagerDashboard from "./app/manager-dashboard"
 import ManagerVans from "./app/manager-vans"
 import ManagerBookings from "./app/manager-bookings"
 import ManagerTransactions from "./app/manager-transactions"
+import RegisterManager from './app/register-manager'
 import "./styles/global.css"
 
 export default function App() {
   return (
     <UserProvider>
       <Router>
+        <ToastContainer position="top-right" autoClose={3000} />
         <Routes>
           {/* Public routes with navbar */}
           <Route
@@ -77,6 +81,8 @@ export default function App() {
           <Route path="/manager-vans" element={<ManagerVans />} />
           <Route path="/manager-bookings" element={<ManagerBookings />} />
           <Route path="/manager-transactions" element={<ManagerTransactions />} />
+
+          <Route path="/register-manager" element={<RegisterManager />} />
         </Routes>
       </Router>
     </UserProvider>

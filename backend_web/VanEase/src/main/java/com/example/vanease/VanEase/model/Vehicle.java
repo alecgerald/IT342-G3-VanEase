@@ -8,7 +8,7 @@ import jakarta.validation.constraints.DecimalMin;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -17,6 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "vehicle")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Vehicle {
 
     @Id
@@ -61,8 +62,8 @@ public class Vehicle {
     @Column(length = 1000)
     private String description;
 
-    @JsonManagedReference
-    @OneToMany(mappedBy = "vehicle")
+    @OneToMany(mappedBy = "vehicle", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"vehicle", "user", "payment"})
     private List<Booking> bookings;
 
     @Column(name = "image_url", length = 500)

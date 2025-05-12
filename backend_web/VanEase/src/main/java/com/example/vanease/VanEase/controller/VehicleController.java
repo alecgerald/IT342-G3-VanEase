@@ -19,12 +19,16 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/vehicles")
 @CrossOrigin(origins = "*")
 @Tag(name = "Vehicle Management", description = "Operations for managing vehicles")
 public class VehicleController {
+
+    private static final Logger logger = LoggerFactory.getLogger(VehicleController.class);
 
     @Autowired
     private VehicleService vehicleService;
@@ -65,28 +69,38 @@ public class VehicleController {
             @ApiResponse(responseCode = "403", description = "Forbidden access")
     })
     @PreAuthorize("hasRole('MANAGER')")
-    @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE })
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createVehicle(
-            @RequestPart(value = "vehicle", required = false) @Valid Vehicle vehicle,
+            @RequestParam(value = "brand", required = true) String brand,
+            @RequestParam(value = "model", required = true) String model,
+            @RequestParam(value = "year", required = true) Integer year,
+            @RequestParam(value = "rentalRate", required = true) Double rentalRate,
+            @RequestParam(value = "plateNumber", required = true) String plateNumber,
+            @RequestParam(value = "availability", required = true) Boolean availability,
+            @RequestParam(value = "seatingCapacity", required = true) Integer seatingCapacity,
+            @RequestParam(value = "transmission", required = true) String transmission,
             @RequestPart(value = "image", required = false) MultipartFile image,
             @RequestHeader("Authorization") String authorizationHeader) {
         try {
             if (!authorizationHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Invalid authorization header format");
             }
 
             String token = authorizationHeader.replace("Bearer ", "");
             // Validate token logic here...
 
-            if (vehicle == null) {
-                return ResponseEntity.badRequest().body("Vehicle data is required");
-            }
+            Vehicle vehicle = new Vehicle();
+            vehicle.setBrand(brand);
+            vehicle.setModel(model);
+            vehicle.setYear(year);
+            vehicle.setRentalRate(java.math.BigDecimal.valueOf(rentalRate));
+            vehicle.setPlateNumber(plateNumber);
+            vehicle.setAvailability(availability);
+            vehicle.setSeatingCapacity(seatingCapacity);
+            vehicle.setTransmission(transmission);
 
-            if (vehicle.getSeatingCapacity() == null || vehicle.getSeatingCapacity() < 1) {
-                return ResponseEntity.badRequest().body("Seating capacity is required and must be at least 1");
-            }
-
-            if (image != null) {
+            if (image != null && !image.isEmpty()) {
                 String imageUrl = vehicleService.saveImage(image);
                 vehicle.setImage(imageUrl);
             }
@@ -94,6 +108,7 @@ public class VehicleController {
             Vehicle createdVehicle = vehicleService.createVehicle(vehicle);
             return ResponseEntity.ok(createdVehicle);
         } catch (Exception e) {
+            logger.error("Error creating vehicle: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error creating vehicle: " + e.getMessage());
         }

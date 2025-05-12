@@ -37,26 +37,21 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
+            .authorizeHttpRequests(authz -> authz
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/vehicles/**").permitAll() // Allow public access to view vehicles
+                .requestMatchers(HttpMethod.GET, "/api/vehicles/**").permitAll()
 
-                // Manager endpoints - specific operations
-                .requestMatchers(HttpMethod.POST, "/api/vehicles/**").hasRole("MANAGER")
-                .requestMatchers(HttpMethod.PUT, "/api/vehicles/**").hasRole("MANAGER")
-                .requestMatchers(HttpMethod.DELETE, "/api/vehicles/**").hasRole("MANAGER")
-                .requestMatchers("/api/manager/**").hasRole("MANAGER")
+                // Customer endpoints
+                .requestMatchers("/api/user/**").hasAuthority("ROLE_CUSTOMER")
+                .requestMatchers(HttpMethod.GET, "/api/bookings/user").hasAuthority("ROLE_CUSTOMER")
+                .requestMatchers(HttpMethod.POST, "/api/bookings").hasAuthority("ROLE_CUSTOMER")
+                .requestMatchers(HttpMethod.POST, "/api/bookings/*/cancel").hasAuthority("ROLE_CUSTOMER")
 
-                // Booking endpoints - allow both customers and managers
-                .requestMatchers(HttpMethod.POST, "/api/bookings/**").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/bookings/user/**").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/bookings/**").hasRole("MANAGER")
-                .requestMatchers(HttpMethod.PUT, "/api/bookings/**").hasRole("MANAGER")
-                .requestMatchers(HttpMethod.DELETE, "/api/bookings/**").hasRole("MANAGER")
-
-                // User endpoints
-                .requestMatchers("/api/user/**").authenticated()
+                // Manager endpoints
+                .requestMatchers("/api/bookings/**").hasAuthority("ROLE_MANAGER")
+                .requestMatchers("/api/vehicles/**").hasAuthority("ROLE_MANAGER")
+                .requestMatchers("/api/transactions/**").hasAuthority("ROLE_MANAGER")
 
                 // All other requests
                 .anyRequest().authenticated()
