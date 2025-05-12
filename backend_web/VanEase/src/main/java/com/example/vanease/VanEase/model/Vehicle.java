@@ -8,6 +8,7 @@ import jakarta.validation.constraints.DecimalMin;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -16,6 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "vehicle")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Vehicle {
 
     @Id
@@ -45,10 +47,23 @@ public class Vehicle {
     @DecimalMin(value = "0.0", inclusive = false, message = "Rental rate must be positive")
     private BigDecimal rentalRate;
 
+    @Column(name = "seating_capacity", nullable = false)
+    @NotNull(message = "Seating capacity is required")
+    @Min(value = 1, message = "Seating capacity must be at least 1")
+    private Integer seatingCapacity;
+
     @Column(nullable = false)
     private Boolean availability = true;
 
-    @OneToMany(mappedBy = "vehicle")
+    @Column(nullable = false)
+    @NotBlank(message = "Transmission type is required")
+    private String transmission;
+
+    @Column(length = 1000)
+    private String description;
+
+    @OneToMany(mappedBy = "vehicle", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"vehicle", "user", "payment"})
     private List<Booking> bookings;
 
     @Column(name = "image_url", length = 500)

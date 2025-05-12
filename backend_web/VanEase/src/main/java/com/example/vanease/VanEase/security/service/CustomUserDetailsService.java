@@ -5,13 +5,18 @@ import com.example.vanease.VanEase.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import java.util.Collections;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.GrantedAuthority;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
-
+    private static final Logger logger = LoggerFactory.getLogger(CustomUserDetailsService.class);
     private final UserRepository userRepository;
 
     public CustomUserDetailsService(UserRepository userRepository) {
@@ -20,13 +25,31 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+        try {
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        return new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
-                user.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-        );
+            List<GrantedAuthority> authorities = new ArrayList<>();
+            String role = "ROLE_" + user.getRole().name();
+            authorities.add(new SimpleGrantedAuthority(role));
+            
+            logger.debug("Loaded user {} with role {}", email, role);
+
+            // For Google-authenticated users (no password), use a placeholder password
+            // This is safe because we're using JWT tokens for authentication
+            String password = user.getPassword();
+            if (password == null || password.isEmpty()) {
+                password = "{noop}google-auth-user"; // {noop} prefix tells Spring Security not to encode this password
+            }
+
+            return new org.springframework.security.core.userdetails.User(
+                    user.getEmail(),
+                    password,
+                    authorities
+            );
+        } catch (Exception e) {
+            logger.error("Error loading user by username: {}", e.getMessage());
+            throw e;
+        }
     }
 }

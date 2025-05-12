@@ -19,12 +19,16 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/vehicles")
 @CrossOrigin(origins = "*")
 @Tag(name = "Vehicle Management", description = "Operations for managing vehicles")
 public class VehicleController {
+
+    private static final Logger logger = LoggerFactory.getLogger(VehicleController.class);
 
     @Autowired
     private VehicleService vehicleService;
@@ -64,23 +68,50 @@ public class VehicleController {
             @ApiResponse(responseCode = "200", description = "Vehicle created successfully"),
             @ApiResponse(responseCode = "403", description = "Forbidden access")
     })
-    @PreAuthorize("hasRole('MANAGER')") // Ensure only MANAGER role can access
-    @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
-    public ResponseEntity<Vehicle> createVehicle(
-            @RequestPart("vehicle") @Valid Vehicle vehicle,
-            @RequestPart("image") MultipartFile image,
+    @PreAuthorize("hasRole('MANAGER')")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createVehicle(
+            @RequestParam(value = "brand", required = true) String brand,
+            @RequestParam(value = "model", required = true) String model,
+            @RequestParam(value = "year", required = true) Integer year,
+            @RequestParam(value = "rentalRate", required = true) Double rentalRate,
+            @RequestParam(value = "plateNumber", required = true) String plateNumber,
+            @RequestParam(value = "availability", required = true) Boolean availability,
+            @RequestParam(value = "seatingCapacity", required = true) Integer seatingCapacity,
+            @RequestParam(value = "transmission", required = true) String transmission,
+            @RequestPart(value = "image", required = false) MultipartFile image,
             @RequestHeader("Authorization") String authorizationHeader) {
-        if (!authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        try {
+            if (!authorizationHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Invalid authorization header format");
+            }
+
+            String token = authorizationHeader.replace("Bearer ", "");
+            // Validate token logic here...
+
+            Vehicle vehicle = new Vehicle();
+            vehicle.setBrand(brand);
+            vehicle.setModel(model);
+            vehicle.setYear(year);
+            vehicle.setRentalRate(java.math.BigDecimal.valueOf(rentalRate));
+            vehicle.setPlateNumber(plateNumber);
+            vehicle.setAvailability(availability);
+            vehicle.setSeatingCapacity(seatingCapacity);
+            vehicle.setTransmission(transmission);
+
+            if (image != null && !image.isEmpty()) {
+                String imageUrl = vehicleService.saveImage(image);
+                vehicle.setImage(imageUrl);
+            }
+
+            Vehicle createdVehicle = vehicleService.createVehicle(vehicle);
+            return ResponseEntity.ok(createdVehicle);
+        } catch (Exception e) {
+            logger.error("Error creating vehicle: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error creating vehicle: " + e.getMessage());
         }
-
-        String token = authorizationHeader.replace("Bearer ", "");
-        // Validate token logic here...
-
-        String imageUrl = vehicleService.saveImage(image);
-        vehicle.setImage(imageUrl);
-        Vehicle createdVehicle = vehicleService.createVehicle(vehicle);
-        return ResponseEntity.ok(createdVehicle);
     }
 
     @Operation(summary = "Update vehicle", description = "Updates an existing vehicle's details")
@@ -89,6 +120,7 @@ public class VehicleController {
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "404", description = "Vehicle not found")
     })
+    @PreAuthorize("hasRole('MANAGER')")
     @PutMapping("/{id}")
     public ResponseEntity<Vehicle> updateVehicle(
             @Parameter(description = "ID of the vehicle to update") @PathVariable Integer id,
@@ -103,6 +135,7 @@ public class VehicleController {
             @ApiResponse(responseCode = "400", description = "Cannot delete vehicle with active bookings"),
             @ApiResponse(responseCode = "404", description = "Vehicle not found")
     })
+    @PreAuthorize("hasRole('MANAGER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteVehicle(
             @Parameter(description = "ID of the vehicle to delete")

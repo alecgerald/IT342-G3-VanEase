@@ -2,51 +2,111 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { useUserContext } from "../context/UserContext"
+import api from "../utils/axiosConfig"
 import "../styles/book-van.css"
 
 export default function BookVan() {
   const navigate = useNavigate()
+  const { token } = useUserContext()
   const [formData, setFormData] = useState({
     pickupLocation: "",
-    dropoffLocation: "",
-    pickupDate: "",
-    dropoffDate: "",
+    dropoffLocation: "VanEase Cebu City Office",
+    startDate: "",
+    endDate: "",
+    totalDays: 0,
+    totalPrice: 0,
     vanModel: "",
+    paymentMethod: "onsite",
   })
   const [vanModels, setVanModels] = useState([])
   const [selectedVehicleId, setSelectedVehicleId] = useState(null)
   const [errorMessage, setErrorMessage] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
+  const [driverLicenseImage, setDriverLicenseImage] = useState(null)
+  const [driverLicensePreview, setDriverLicensePreview] = useState(null)
 
   useEffect(() => {
     const fetchVanModels = async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/vehicles")
-        if (!response.ok) {
-          throw new Error("Failed to fetch van models")
-        }
-        const data = await response.json()
-        setVanModels(data)
+        const response = await api.get("/vehicles")
+        setVanModels(response.data.filter((vehicle) => vehicle.availability))
       } catch (error) {
         console.error("Error fetching van models:", error)
-        setErrorMessage("Failed to load van models. Please try again later.")
+        setErrorMessage(error.response?.data || "Failed to load van models. Please try again later.")
       }
     }
 
     fetchVanModels()
-  }, [])
+  }, [token])
+
+  const handleLicenseImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setDriverLicenseImage(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setDriverLicensePreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  useEffect(() => {
+    if (formData.startDate && formData.endDate && selectedVehicleId) {
+      const startDate = new Date(formData.startDate)
+      const endDate = new Date(formData.endDate)
+      const diffTime = Math.abs(endDate - startDate)
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      const totalDays = Math.max(1, diffDays)
+
+      const selectedVehicle = vanModels.find((vehicle) => vehicle.vehicleId === selectedVehicleId)
+      if (selectedVehicle) {
+        const price = selectedVehicle.rentalRate * totalDays
+        setFormData((prev) => ({
+          ...prev,
+          totalDays: totalDays,
+          totalPrice: price,
+        }))
+      }
+    }
+  }, [formData.startDate, formData.endDate, selectedVehicleId, vanModels])
 
   const handleChange = (e) => {
     const { name, value } = e.target
+
+    if (name === "vanModel") {
+      const selectedVehicle = vanModels.find((vehicle) => `${vehicle.brand} ${vehicle.model}` === value)
+      setSelectedVehicleId(selectedVehicle ? selectedVehicle.vehicleId : null)
+    }
+
+    if (name === "endDate" && formData.startDate) {
+      const startDate = new Date(formData.startDate)
+      const endDate = new Date(value)
+      if (endDate < startDate) {
+        setErrorMessage("End date cannot be before start date")
+        return
+      }
+      setErrorMessage("")
+    }
+
+    if (name === "startDate" && formData.endDate) {
+      const startDate = new Date(value)
+      const endDate = new Date(formData.endDate)
+      if (endDate < startDate) {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: value,
+          endDate: value,
+        }))
+        return
+      }
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }))
-
-    if (name === "vanModel") {
-      const selectedVehicle = vanModels.find((vehicle) => vehicle.model === value)
-      setSelectedVehicleId(selectedVehicle ? selectedVehicle.vehicleId : null)
-    }
   }
 
   const handleSubmit = async (e) => {
@@ -59,50 +119,46 @@ export default function BookVan() {
       return
     }
 
-    const bookingRequest = {
-      vehicleId: selectedVehicleId,
-      startDate: formData.pickupDate,
-      endDate: formData.dropoffDate,
-      pickupLocation: formData.pickupLocation,
-      dropoffLocation: formData.dropoffLocation,
+    if (!token) {
+      setErrorMessage("You must be logged in to make a booking.")
+      navigate("/login")
+      return
     }
 
     try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        setErrorMessage("You must be logged in to make a booking.")
-        navigate("/login")
-        return
+      const bookingRequest = {
+        vehicleId: selectedVehicleId,
+        startDate: formData.startDate,
+        totalDays: formData.totalDays,
+        pickupLocation: formData.pickupLocation,
+        dropoffLocation: formData.dropoffLocation,
+        totalPrice: formData.totalPrice,
+        paymentMethod: formData.paymentMethod === "onsite" ? "CASH_ON_SITE" : "PAYPAL",
       }
 
-      const response = await fetch("http://localhost:8080/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(bookingRequest),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error("Error response:", errorText)
-        setErrorMessage(errorText || "Failed to submit booking. Please try again.")
-        return
-      }
-
+      const response = await api.post("/bookings", bookingRequest)
       setSuccessMessage("Booking request submitted successfully!")
       setFormData({
         pickupLocation: "",
-        dropoffLocation: "",
-        pickupDate: "",
-        dropoffDate: "",
+        dropoffLocation: "VanEase Cebu City Office",
+        startDate: "",
+        endDate: "",
+        totalDays: 0,
+        totalPrice: 0,
         vanModel: "",
+        paymentMethod: "onsite",
       })
       setSelectedVehicleId(null)
+      setDriverLicenseImage(null)
+      setDriverLicensePreview(null)
+      navigate("/my-bookings")
     } catch (error) {
       console.error("Error submitting booking:", error)
-      setErrorMessage("An unexpected error occurred. Please try again.")
+      if (error.response?.status === 403) {
+        setErrorMessage("You don't have permission to make bookings. Please log in as a customer.")
+        return
+      }
+      setErrorMessage(error.response?.data || "An unexpected error occurred. Please try again.")
     }
   }
 
@@ -174,14 +230,33 @@ export default function BookVan() {
             </div>
 
             <div className="booking-form">
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} className="van-form">
                 <div className="booking-form-section">
                   <h3 className="booking-form-section-title">Rental Details</h3>
+                </div>
 
+                <div className="booking-form-section">
+                  <h3 className="booking-form-section-title">Rental Dates &amp; Locations</h3>
+                  
                   <div className="booking-form-grid">
                     <div className="booking-form-group">
+                      <label htmlFor="startDate" className="booking-form-label">
+                        <span className="booking-label-icon">📅</span> Start Date
+                      </label>
+                      <input
+                        type="date"
+                        id="startDate"
+                        name="startDate"
+                        value={formData.startDate}
+                        onChange={handleChange}
+                        className="booking-form-control"
+                        min={new Date().toISOString().split("T")[0]}
+                        required
+                      />
+                    </div>
+                    <div className="booking-form-group">
                       <label htmlFor="pickupLocation" className="booking-form-label">
-                        Pickup Location
+                        <span className="booking-label-icon">📍</span> Pickup Location
                       </label>
                       <input
                         type="text"
@@ -194,57 +269,48 @@ export default function BookVan() {
                         required
                       />
                     </div>
+                  </div>
+
+                  <div className="booking-form-grid">
+                    <div className="booking-form-group">
+                      <label htmlFor="endDate" className="booking-form-label">
+                        <span className="booking-label-icon">📅</span> End Date
+                      </label>
+                      <input
+                        type="date"
+                        id="endDate"
+                        name="endDate"
+                        value={formData.endDate}
+                        onChange={handleChange}
+                        className="booking-form-control"
+                        min={formData.startDate || new Date().toISOString().split("T")[0]}
+                        required
+                      />
+                    </div>
                     <div className="booking-form-group">
                       <label htmlFor="dropoffLocation" className="booking-form-label">
-                        Drop-off Location
+                        <span className="booking-label-icon">📍</span> Drop-off Location
                       </label>
                       <input
                         type="text"
                         id="dropoffLocation"
                         name="dropoffLocation"
                         value={formData.dropoffLocation}
-                        onChange={handleChange}
                         className="booking-form-control"
                         placeholder="Enter drop-off location"
-                        required
+                        readOnly
                       />
+                      <small className="form-text">Default drop-off at VanEase Cebu City Office</small>
                     </div>
                   </div>
+                </div>
 
-                  <div className="booking-form-grid">
-                    <div className="booking-form-group">
-                      <label htmlFor="pickupDate" className="booking-form-label">
-                        Pickup Date
-                      </label>
-                      <input
-                        type="date"
-                        id="pickupDate"
-                        name="pickupDate"
-                        value={formData.pickupDate}
-                        onChange={handleChange}
-                        className="booking-form-control"
-                        required
-                      />
-                    </div>
-                    <div className="booking-form-group">
-                      <label htmlFor="dropoffDate" className="booking-form-label">
-                        Drop-off Date
-                      </label>
-                      <input
-                        type="date"
-                        id="dropoffDate"
-                        name="dropoffDate"
-                        value={formData.dropoffDate}
-                        onChange={handleChange}
-                        className="booking-form-control"
-                        required
-                      />
-                    </div>
-                  </div>
-
+                <div className="booking-form-section">
+                  <h3 className="booking-form-section-title">Vehicle Selection</h3>
+                  
                   <div className="booking-form-group">
                     <label htmlFor="vanModel" className="booking-form-label">
-                      Van Model
+                      <span className="booking-label-icon">🚐</span> Select Your Van
                     </label>
                     <select
                       id="vanModel"
@@ -254,13 +320,134 @@ export default function BookVan() {
                       className="booking-form-control"
                       required
                     >
-                      <option value="">Select van model</option>
+                      <option value="">Choose a van model</option>
                       {vanModels.map((vehicle) => (
-                        <option key={vehicle.vehicleId} value={vehicle.model}>
-                          {vehicle.model}
+                        <option key={vehicle.vehicleId} value={`${vehicle.brand} ${vehicle.model}`}>
+                          {vehicle.brand} {vehicle.model} - ₱{vehicle.rentalRate}/day
                         </option>
                       ))}
                     </select>
+                  </div>
+                  
+                  {selectedVehicleId && (
+                    <div className="selected-van-details">
+                      <h4 className="selected-van-title">Selected Vehicle Details</h4>
+                      {vanModels.filter(v => v.vehicleId === selectedVehicleId).map(vehicle => (
+                        <div key={vehicle.vehicleId} className="selected-van-info">
+                          <div className="selected-van-info-item">
+                            <span className="selected-van-label">Model:</span>
+                            <span className="selected-van-value">{vehicle.brand} {vehicle.model}</span>
+                          </div>
+                          <div className="selected-van-info-item">
+                            <span className="selected-van-label">Daily Rate:</span>
+                            <span className="selected-van-value">₱{vehicle.rentalRate.toLocaleString()}</span>
+                          </div>
+                          <div className="selected-van-info-item">
+                            <span className="selected-van-label">Capacity:</span>
+                            <span className="selected-van-value">{vehicle.capacity || "Standard"} passengers</span>
+                          </div>
+                          <div className="selected-van-info-item">
+                            <span className="selected-van-label">Transmission:</span>
+                            <span className="selected-van-value">{vehicle.transmission || "Automatic"}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                  <div className="booking-form-group">
+                    <label htmlFor="driverLicense" className="booking-form-label">
+                      Driver's License Image
+                    </label>
+                    <input
+                      type="file"
+                      id="driverLicense"
+                      name="driverLicense"
+                      onChange={handleLicenseImageChange}
+                      className="booking-form-control"
+                      accept="image/*"
+                      required
+                    />
+                    {driverLicensePreview && (
+                      <div className="license-preview">
+                        <img
+                          src={driverLicensePreview || "/placeholder.svg"}
+                          alt="Driver's License Preview"
+                          className="license-preview-image"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                <div className="booking-form-section">
+                  <h3 className="booking-form-section-title">Booking Summary</h3>
+                  
+                  <div className="booking-summary">
+                    <div className="booking-summary-row">
+                      <div className="booking-summary-label">
+                        <span className="booking-label-icon">📆</span> Rental Duration:
+                      </div>
+                      <div className="booking-summary-value highlight">
+                        {formData.totalDays} {formData.totalDays === 1 ? "day" : "days"}
+                      </div>
+                    </div>
+                    
+                    <div className="booking-summary-row">
+                      <div className="booking-summary-label">
+                        <span className="booking-label-icon">💰</span> Daily Rate:
+                      </div>
+                      <div className="booking-summary-value">
+                        {selectedVehicleId ? 
+                          `₱${vanModels.find(v => v.vehicleId === selectedVehicleId)?.rentalRate.toLocaleString()}/day` : 
+                          "Select a van"}
+                      </div>
+                    </div>
+                    
+                    <div className="booking-summary-row total">
+                      <div className="booking-summary-label">
+                        <span className="booking-label-icon">💵</span> Total Price:
+                      </div>
+                      <div className="booking-summary-value highlight">
+                        ₱{formData.totalPrice.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="booking-form-section">
+                  <h3 className="booking-form-section-title">Payment Method</h3>
+                  <div className="booking-form-group">
+                    <div className="payment-options">
+                      <label className="payment-option">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="onsite"
+                          checked={formData.paymentMethod === "onsite"}
+                          onChange={handleChange}
+                        />
+                        <span className="payment-option-icon">💵</span>
+                        <div className="payment-option-info">
+                          <span className="payment-option-title">Cash On-Site</span>
+                          <span className="payment-option-description">Pay in cash when you pick up your van</span>
+                        </div>
+                      </label>
+                      <label className="payment-option">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="paypal"
+                          checked={formData.paymentMethod === "paypal"}
+                          onChange={handleChange}
+                        />
+                        <span className="payment-option-icon">💳</span>
+                        <div className="payment-option-info">
+                          <span className="payment-option-title">PayPal</span>
+                          <span className="payment-option-description">Secure online payment via PayPal</span>
+                        </div>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -275,4 +462,3 @@ export default function BookVan() {
     </main>
   )
 }
-

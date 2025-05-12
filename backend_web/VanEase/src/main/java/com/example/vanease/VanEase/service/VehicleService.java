@@ -3,22 +3,42 @@ package com.example.vanease.VanEase.service;
 import com.example.vanease.VanEase.exception.ResourceNotFoundException;
 import com.example.vanease.VanEase.model.Vehicle;
 import com.example.vanease.VanEase.repository.VehicleRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.annotation.PostConstruct;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class VehicleService {
 
+    private static final String UPLOAD_DIR = "uploads/vehicles";
+    private static final Logger logger = LoggerFactory.getLogger(VehicleService.class);
+
     @Autowired
     private VehicleRepository vehicleRepository;
+
+    @PostConstruct
+    public void init() {
+        try {
+            File uploadDir = new File(UPLOAD_DIR);
+            if (!uploadDir.exists()) {
+                uploadDir.mkdirs();
+            }
+        } catch (Exception e) {
+            logger.error("Could not create upload directory!", e);
+        }
+    }
 
     public List<Vehicle> getAllVehicles() {
         return vehicleRepository.findAll();
@@ -56,16 +76,40 @@ public class VehicleService {
         vehicleRepository.delete(vehicle);
     }
 
-    public String saveImage(MultipartFile image) {
+    public String saveImage(MultipartFile file) {
         try {
-            String fileName = UUID.randomUUID() + "_" + image.getOriginalFilename();
-            Path imagePath = Paths.get("frontend_web/vanease_frontend/public/images/" + fileName); // Save in /public/images
-            Files.createDirectories(imagePath.getParent());
-            Files.write(imagePath, image.getBytes());
-            System.out.println("Image saved at: " + imagePath.toAbsolutePath()); // Debugging log
-            return "/images/" + fileName; // Return relative path for frontend access
+            if (file == null || file.isEmpty()) {
+                return null;
+            }
+
+            // Generate unique filename
+            String originalFilename = file.getOriginalFilename();
+            String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            String filename = UUID.randomUUID().toString() + extension;
+
+            // Create the file path
+            Path filePath = Paths.get(UPLOAD_DIR, filename);
+            
+            // Save the file
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Return the relative path for storage in database
+            return "/api/vehicles/images/" + filename;
         } catch (IOException e) {
+            logger.error("Failed to save image", e);
             throw new RuntimeException("Failed to save image", e);
+        }
+    }
+
+    public void deleteImage(String imageUrl) {
+        if (imageUrl != null && imageUrl.startsWith("/api/vehicles/images/")) {
+            try {
+                String filename = imageUrl.substring("/api/vehicles/images/".length());
+                Path filePath = Paths.get(UPLOAD_DIR, filename);
+                Files.deleteIfExists(filePath);
+            } catch (IOException e) {
+                logger.error("Failed to delete image", e);
+            }
         }
     }
 }

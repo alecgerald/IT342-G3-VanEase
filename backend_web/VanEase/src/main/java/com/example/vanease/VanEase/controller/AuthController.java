@@ -34,4 +34,9 @@ public class AuthController {
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         return authService.authenticateUser(loginRequest);
     }
+
+    @PostMapping("/register/manager")
+    public ResponseEntity<?> registerManager(@Valid @RequestBody RegisterRequest registerRequest) {
+        return authService.registerManager(registerRequest);
+    }
 }

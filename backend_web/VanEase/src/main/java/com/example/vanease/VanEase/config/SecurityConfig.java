@@ -37,16 +37,28 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
+            .cors(cors -> cors.configure(http))  // Enable CORS
+            .authorizeHttpRequests(authz -> authz
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/vehicles/**").permitAll() // Allow public access to vehicles
+                .requestMatchers(HttpMethod.GET, "/api/vehicles/**").permitAll()
 
-                // User endpoints
-                .requestMatchers("/api/user/**").authenticated()
+                // PayPal endpoints - allow authenticated users
+                .requestMatchers("/api/paypal/**").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_MANAGER")
 
-                // Manager endpoints
-                .requestMatchers("/api/vehicles/manage/**").hasRole("MANAGER") // Restrict management to MANAGER role
+                // Customer endpoints
+                .requestMatchers("/api/user/**").hasAuthority("ROLE_CUSTOMER")
+                .requestMatchers(HttpMethod.GET, "/api/bookings/user").hasAuthority("ROLE_CUSTOMER")
+                .requestMatchers(HttpMethod.POST, "/api/bookings").hasAuthority("ROLE_CUSTOMER")
+                .requestMatchers(HttpMethod.POST, "/api/bookings/*/cancel").hasAuthority("ROLE_CUSTOMER")
+
+                // Manager endpoints - update to be more specific
+                .requestMatchers(HttpMethod.GET, "/api/bookings/all").hasAuthority("ROLE_MANAGER")
+                .requestMatchers(HttpMethod.GET, "/api/bookings/{id}").hasAuthority("ROLE_MANAGER")
+                .requestMatchers(HttpMethod.POST, "/api/bookings/*/confirm").hasAuthority("ROLE_MANAGER")
+                .requestMatchers(HttpMethod.POST, "/api/bookings/*/complete").hasAuthority("ROLE_MANAGER")
+                .requestMatchers("/api/vehicles/**").hasAuthority("ROLE_MANAGER")
+                .requestMatchers("/api/transactions/**").hasAuthority("ROLE_MANAGER")
 
                 // All other requests
                 .anyRequest().authenticated()
