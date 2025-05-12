@@ -216,7 +216,7 @@ export default function MyBookings() {
                 <div className="booking-actions">
                   {booking.status === "PENDING" && (
                     <>
-                      {booking.paymentMethod === "paypal" ? (
+                      {booking.paymentMethod?.toLowerCase() === "paypal" ? (
                         <button
                           className="action-button pay"
                           onClick={() => handlePayWithPaypal(booking.bookingId)}
