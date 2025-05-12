@@ -76,7 +76,8 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("https://it-342-g3-van-ease.vercel.app"); // Frontend origin
+        config.addAllowedOrigin("https://it-342-g3-van-ease.vercel.app"); // Production frontend
+        config.addAllowedOrigin("https://it-342-g3-van-ease-git-integration-alec-alecgeralds-projects.vercel.app"); // Preview frontend
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         source.registerCorsConfiguration("/**", config);
