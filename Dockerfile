@@ -7,9 +7,12 @@ RUN apk add --no-cache bash curl
 WORKDIR /app
 
 # Copy only files needed for dependency resolution first (for better build caching)
-COPY backend_web/VanEase/pom.xml .
 COPY backend_web/VanEase/mvnw .
+COPY backend_web/VanEase/pom.xml .
 COPY backend_web/VanEase/.mvn .mvn
+
+# Give execute permission to Maven wrapper
+RUN chmod +x mvnw
 
 # Download dependencies (leverages Docker cache)
 RUN ./mvnw dependency:go-offline
