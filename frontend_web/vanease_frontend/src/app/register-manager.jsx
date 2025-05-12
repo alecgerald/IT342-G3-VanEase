@@ -64,7 +64,7 @@ export default function RegisterManager() {
     }
 
     try {
-      const response = await axios.post("http://localhost:8080/api/auth/register/manager", {
+      const response = await axios.post("https://it342-g3-vanease.onrender.com/api/auth/register/manager", {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
