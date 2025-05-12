@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useUserContext } from "../context/UserContext"
+import api from "../utils/axiosConfig"
 import "../styles/my-bookings.css"
 
 export default function MyBookings() {
@@ -13,6 +14,8 @@ export default function MyBookings() {
   const [allBookings, setAllBookings] = useState([])
   const [errorMessage, setErrorMessage] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -22,22 +25,19 @@ export default function MyBookings() {
           return
         }
 
-        const response = await fetch("http://localhost:8080/api/bookings/user", {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        })
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch bookings")
-        }
-
-        const data = await response.json()
-        setAllBookings(data)
-        setBookings(data)
-      } catch (error) {
-        console.error("Error fetching bookings:", error)
-        setErrorMessage("Failed to load bookings. Please check your connection and try again.")
+        const response = await api.get("/bookings/user")
+        // Transform the data to include vehicle details
+        const transformedBookings = response.data.map(booking => ({
+          ...booking,
+          vehicleName: booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : 'Unknown Vehicle'
+        }))
+        setAllBookings(transformedBookings)
+        setBookings(transformedBookings)
+        setLoading(false)
+      } catch (err) {
+        console.error("Error fetching bookings:", err)
+        setError(err.response?.data || "Failed to load bookings")
+        setLoading(false)
       }
     }
 
@@ -75,20 +75,9 @@ export default function MyBookings() {
 
   const handlePayWithPaypal = async (bookingId) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/payments/paypal/${bookingId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to initiate PayPal payment")
-      }
-
-      const data = await response.json()
+      const response = await api.post(`/payments/paypal/${bookingId}`)
       // Redirect to PayPal checkout URL
-      window.location.href = data.approvalUrl
+      window.location.href = response.data.approvalUrl
     } catch (error) {
       console.error("Error initiating PayPal payment:", error)
       setErrorMessage("Failed to initiate payment. Please try again.")
@@ -97,17 +86,7 @@ export default function MyBookings() {
 
   const handleCancelBooking = async (bookingId) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/bookings/${bookingId}/cancel`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to cancel booking")
-      }
-
+      const response = await api.post(`/bookings/${bookingId}/cancel`)
       // Update the local state to reflect the cancellation
       const updatedBookings = allBookings.map((booking) =>
         booking.bookingId === bookingId ? { ...booking, status: "CANCELLED" } : booking
@@ -187,7 +166,7 @@ export default function MyBookings() {
                     <h2>Booking #{booking.bookingId}</h2>
                     {getStatusBadge(booking.status)}
                   </div>
-                  <div className="booking-id">Vehicle ID: {booking.vehicleId}</div>
+                  <div className="booking-vehicle">Vehicle: {booking.vehicleName}</div>
                 </div>
 
                 <div className="booking-details">

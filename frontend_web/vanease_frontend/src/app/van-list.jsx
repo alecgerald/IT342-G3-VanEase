@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { useUserContext } from "../context/UserContext"
+import api from "../utils/axiosConfig"
 import "../styles/van-list.css"
 
 // Import placeholder image
@@ -18,22 +19,12 @@ export default function VanList() {
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/vehicles", {
-          headers: {
-            "Authorization": token ? `Bearer ${token}` : ""
-          }
-        })
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch vehicles")
-        }
-
-        const data = await response.json()
-        setVehicles(data)
+        const response = await api.get("/vehicles")
+        setVehicles(response.data)
         setLoading(false)
       } catch (err) {
         console.error("Error fetching vehicles:", err)
-        setError("Failed to load vehicles")
+        setError(err.response?.data || "Failed to load vehicles")
         setLoading(false)
       }
     }

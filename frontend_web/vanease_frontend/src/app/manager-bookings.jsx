@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useUserContext } from "../context/UserContext"
 import ManagerNavbar from "../components/ManagerNavbar"
+import api from "../utils/axiosConfig"
 import "../styles/manager-bookings.css"
 
 export default function ManagerBookings() {
@@ -23,24 +24,13 @@ export default function ManagerBookings() {
           return
         }
 
-        const response = await fetch("http://localhost:8080/api/bookings", {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: "Failed to fetch bookings" }))
-          throw new Error(errorData.message || "Failed to fetch bookings")
-        }
-
-        const data = await response.json()
-        if (!Array.isArray(data)) {
+        const response = await api.get("/bookings")
+        if (!Array.isArray(response.data)) {
           throw new Error("Invalid response format: expected an array of bookings")
         }
 
         // Transform the data to match the UI
-        const transformedData = data.map(booking => {
+        const transformedData = response.data.map(booking => {
           const user = booking.user || {}
           const vehicle = booking.vehicle || {}
           const payment = booking.payment || {}
@@ -63,7 +53,7 @@ export default function ManagerBookings() {
         setBookings(transformedData)
       } catch (error) {
         console.error("Error fetching bookings:", error)
-        setMessage({ text: error.message || "Failed to load bookings", type: "error" })
+        setMessage({ text: error.response?.data || "Failed to load bookings", type: "error" })
       }
     }
 
@@ -86,14 +76,7 @@ export default function ManagerBookings() {
   const handleAcceptBooking = async (bookingId) => {
     if (!bookingId) return
     try {
-      const response = await fetch(`http://localhost:8080/api/bookings/${bookingId}/confirm`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
-      })
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Failed to confirm booking" }))
-        throw new Error(errorData.message || "Failed to confirm booking")
-      }
+      await api.post(`/bookings/${bookingId}/confirm`)
       setBookings(bookings.map(booking => booking.bookingId === bookingId ? { ...booking, status: "confirmed" } : booking))
       if (selectedBooking && selectedBooking.bookingId === bookingId) {
         setSelectedBooking({ ...selectedBooking, status: "confirmed" })
@@ -102,7 +85,7 @@ export default function ManagerBookings() {
       handleCloseModal()
     } catch (error) {
       console.error("Error confirming booking:", error)
-      setMessage({ text: error.message || "Failed to confirm booking", type: "error" })
+      setMessage({ text: error.response?.data || "Failed to confirm booking", type: "error" })
     }
     setTimeout(() => setMessage({ text: "", type: "" }), 3000)
   }
@@ -110,14 +93,7 @@ export default function ManagerBookings() {
   const handleRejectBooking = async (bookingId) => {
     if (!bookingId) return
     try {
-      const response = await fetch(`http://localhost:8080/api/bookings/${bookingId}/cancel`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
-      })
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Failed to cancel booking" }))
-        throw new Error(errorData.message || "Failed to cancel booking")
-      }
+      await api.post(`/bookings/${bookingId}/cancel`)
       setBookings(bookings.map(booking => booking.bookingId === bookingId ? { ...booking, status: "cancelled" } : booking))
       if (selectedBooking && selectedBooking.bookingId === bookingId) {
         setSelectedBooking({ ...selectedBooking, status: "cancelled" })
@@ -126,7 +102,7 @@ export default function ManagerBookings() {
       handleCloseModal()
     } catch (error) {
       console.error("Error cancelling booking:", error)
-      setMessage({ text: error.message || "Failed to cancel booking", type: "error" })
+      setMessage({ text: error.response?.data || "Failed to cancel booking", type: "error" })
     }
     setTimeout(() => setMessage({ text: "", type: "" }), 3000)
   }
@@ -134,14 +110,7 @@ export default function ManagerBookings() {
   const handleCompleteBooking = async (bookingId) => {
     if (!bookingId) return
     try {
-      const response = await fetch(`http://localhost:8080/api/bookings/${bookingId}/complete`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
-      })
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Failed to complete booking" }))
-        throw new Error(errorData.message || "Failed to complete booking")
-      }
+      await api.post(`/bookings/${bookingId}/complete`)
       setBookings(bookings.map(booking => booking.bookingId === bookingId ? { ...booking, status: "completed" } : booking))
       if (selectedBooking && selectedBooking.bookingId === bookingId) {
         setSelectedBooking({ ...selectedBooking, status: "completed" })
@@ -150,7 +119,7 @@ export default function ManagerBookings() {
       handleCloseModal()
     } catch (error) {
       console.error("Error completing booking:", error)
-      setMessage({ text: error.message || "Failed to complete booking", type: "error" })
+      setMessage({ text: error.response?.data || "Failed to complete booking", type: "error" })
     }
     setTimeout(() => setMessage({ text: "", type: "" }), 3000)
   }

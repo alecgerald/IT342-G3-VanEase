@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useUserContext } from "../context/UserContext"
 import { useNavigate } from "react-router-dom"
+import api from "../utils/axiosConfig"
 import "../styles/profile.css"
 
 export default function Profile() {
@@ -27,38 +28,22 @@ export default function Profile() {
         return
       }
 
-      console.log("Sending request with token:", token) // Debugging log
-
       try {
-        const response = await fetch("http://localhost:8080/api/user/profile", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        if (response.status === 403) {
-          console.error("Token is invalid or expired. Redirecting to login.")
-          setMessage({ text: "Session expired. Please log in again.", type: "error" })
-          navigate("/login")
-          return
-        }
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch profile")
-        }
-
-        const data = await response.json()
-        console.log("Profile data fetched successfully:", data) // Debugging log
+        const response = await api.get("/user/profile")
         setFormData({
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
+          name: response.data.name,
+          email: response.data.email,
+          phone: response.data.phone,
           password: "",
         })
       } catch (error) {
         console.error("Error fetching profile:", error)
-        setMessage({ text: "Failed to load profile. Please try again.", type: "error" })
+        if (error.response?.status === 403) {
+          setMessage({ text: "Session expired. Please log in again.", type: "error" })
+          navigate("/login")
+          return
+        }
+        setMessage({ text: error.response?.data || "Failed to load profile. Please try again.", type: "error" })
       }
     }
 
@@ -87,30 +72,16 @@ export default function Profile() {
     setMessage({ text: "", type: "" })
 
     try {
-      const response = await fetch("http://localhost:8080/api/user/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      })
-
-      if (response.status === 403) {
-        console.error("Token is invalid or expired. Redirecting to login.")
+      await api.put("/user/profile", formData)
+      setMessage({ text: "Profile updated successfully", type: "success" })
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      if (error.response?.status === 403) {
         setMessage({ text: "Session expired. Please log in again.", type: "error" })
         navigate("/login")
         return
       }
-
-      if (!response.ok) {
-        throw new Error("Failed to update profile")
-      }
-
-      setMessage({ text: "Profile updated successfully", type: "success" })
-    } catch (error) {
-      console.error("Error updating profile:", error)
-      setMessage({ text: "Failed to update profile. Please try again.", type: "error" })
+      setMessage({ text: error.response?.data || "Failed to update profile. Please try again.", type: "error" })
     }
   }
 

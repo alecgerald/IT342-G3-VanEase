@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useUserContext } from "../context/UserContext"
+import api from "../utils/axiosConfig"
 import "../styles/book-van.css"
 
 export default function BookVan() {
@@ -28,21 +29,11 @@ export default function BookVan() {
   useEffect(() => {
     const fetchVanModels = async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/vehicles", {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        })
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch vehicles")
-        }
-
-        const data = await response.json()
-        setVanModels(data.filter(vehicle => vehicle.availability))
+        const response = await api.get("/vehicles")
+        setVanModels(response.data.filter(vehicle => vehicle.availability))
       } catch (error) {
         console.error("Error fetching van models:", error)
-        setErrorMessage("Failed to load van models. Please try again later.")
+        setErrorMessage(error.response?.data || "Failed to load van models. Please try again later.")
       }
     }
 
@@ -145,25 +136,7 @@ export default function BookVan() {
         paymentMethod: formData.paymentMethod === "onsite" ? "CASH_ON_SITE" : "PAYPAL"
       }
 
-      const response = await fetch("http://localhost:8080/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(bookingRequest)
-      })
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          setErrorMessage("You don't have permission to make bookings. Please log in as a customer.")
-          return
-        }
-        const errorText = await response.text()
-        throw new Error(errorText || "Failed to create booking")
-      }
-
-      const data = await response.json()
+      const response = await api.post("/bookings", bookingRequest)
       setSuccessMessage("Booking request submitted successfully!")
       setFormData({
         pickupLocation: "",
@@ -181,7 +154,11 @@ export default function BookVan() {
       navigate("/my-bookings")
     } catch (error) {
       console.error("Error submitting booking:", error)
-      setErrorMessage(error.message || "An unexpected error occurred. Please try again.")
+      if (error.response?.status === 403) {
+        setErrorMessage("You don't have permission to make bookings. Please log in as a customer.")
+        return
+      }
+      setErrorMessage(error.response?.data || "An unexpected error occurred. Please try again.")
     }
   }
 

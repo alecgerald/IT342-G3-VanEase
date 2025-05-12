@@ -35,9 +35,16 @@ public class CustomUserDetailsService implements UserDetailsService {
             
             logger.debug("Loaded user {} with role {}", email, role);
 
+            // For Google-authenticated users (no password), use a placeholder password
+            // This is safe because we're using JWT tokens for authentication
+            String password = user.getPassword();
+            if (password == null || password.isEmpty()) {
+                password = "{noop}google-auth-user"; // {noop} prefix tells Spring Security not to encode this password
+            }
+
             return new org.springframework.security.core.userdetails.User(
                     user.getEmail(),
-                    user.getPassword(),
+                    password,
                     authorities
             );
         } catch (Exception e) {

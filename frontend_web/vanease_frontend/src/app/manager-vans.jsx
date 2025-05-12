@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import ManagerNavbar from "../components/ManagerNavbar"
+import api from "../utils/axiosConfig"
 import "../styles/manager-vans.css"
 import placeholderImage from "../assets/placeholder.svg"
 import { useUserContext } from "../context/UserContext"
@@ -32,23 +33,14 @@ export default function ManagerVans() {
 
   const fetchVehicles = async () => {
     try {
-      const response = await fetch("http://localhost:8080/api/vehicles", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Failed to fetch vehicles" }))
-        throw new Error(errorData.message || "Failed to fetch vehicles")
-      }
-      const data = await response.json()
-      if (!Array.isArray(data)) {
+      const response = await api.get("/vehicles")
+      if (!Array.isArray(response.data)) {
         throw new Error("Invalid response format: expected an array of vehicles")
       }
-      setVehicles(data)
+      setVehicles(response.data)
     } catch (error) {
       console.error("Error fetching vehicles:", error)
-      setMessage({ text: error.message || "Failed to load vehicles", type: "error" })
+      setMessage({ text: error.response?.data || "Failed to load vehicles", type: "error" })
     }
   }
 
@@ -141,28 +133,14 @@ export default function ManagerVans() {
         formDataToSend.append("image", imageFile)
       }
 
-      const url = editingVehicle
-        ? `http://localhost:8080/api/vehicles/${editingVehicle.vehicleId}`
-        : "http://localhost:8080/api/vehicles"
-      const method = editingVehicle ? "PUT" : "POST"
+      const url = editingVehicle ? `/vehicles/${editingVehicle.vehicleId}` : "/vehicles"
+      const method = editingVehicle ? "put" : "post"
 
-      const response = await fetch(url, {
-        method,
+      const response = await api[method](url, formDataToSend, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
         },
-        body: formDataToSend,
       })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Failed to save vehicle" }))
-        throw new Error(errorData.message || "Failed to save vehicle")
-      }
-
-      const updatedVehicle = await response.json()
-      if (!updatedVehicle) {
-        throw new Error("Invalid response format: expected vehicle data")
-      }
 
       setMessage({
         text: `Vehicle ${editingVehicle ? "updated" : "added"} successfully!`,
@@ -174,7 +152,7 @@ export default function ManagerVans() {
     } catch (error) {
       console.error("Error saving vehicle:", error)
       setMessage({
-        text: error.message || `Failed to ${editingVehicle ? "update" : "add"} vehicle`,
+        text: error.response?.data || `Failed to ${editingVehicle ? "update" : "add"} vehicle`,
         type: "error",
       })
     }
@@ -205,23 +183,12 @@ export default function ManagerVans() {
     if (!vehicleId) return
     if (window.confirm("Are you sure you want to delete this vehicle?")) {
       try {
-        const response = await fetch(`http://localhost:8080/api/vehicles/${vehicleId}`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: "Failed to delete vehicle" }))
-          throw new Error(errorData.message || "Failed to delete vehicle")
-        }
-
+        await api.delete(`/vehicles/${vehicleId}`)
         setMessage({ text: "Vehicle deleted successfully!", type: "success" })
         fetchVehicles()
       } catch (error) {
         console.error("Error deleting vehicle:", error)
-        setMessage({ text: error.message || "Failed to delete vehicle", type: "error" })
+        setMessage({ text: error.response?.data || "Failed to delete vehicle", type: "error" })
       }
 
       setTimeout(() => {
@@ -238,27 +205,10 @@ export default function ManagerVans() {
         throw new Error("Vehicle not found")
       }
 
-      const response = await fetch(`http://localhost:8080/api/vehicles/${vehicleId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...vehicle,
-          availability: !vehicle.availability,
-        }),
+      const response = await api.put(`/vehicles/${vehicleId}`, {
+        ...vehicle,
+        availability: !vehicle.availability,
       })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Failed to update vehicle availability" }))
-        throw new Error(errorData.message || "Failed to update vehicle availability")
-      }
-
-      const updatedVehicle = await response.json()
-      if (!updatedVehicle) {
-        throw new Error("Invalid response format: expected vehicle data")
-      }
 
       setMessage({
         text: `Vehicle marked as ${!vehicle.availability ? "available" : "unavailable"}!`,
@@ -267,7 +217,7 @@ export default function ManagerVans() {
       fetchVehicles()
     } catch (error) {
       console.error("Error updating vehicle availability:", error)
-      setMessage({ text: error.message || "Failed to update vehicle availability", type: "error" })
+      setMessage({ text: error.response?.data || "Failed to update vehicle availability", type: "error" })
     }
 
     setTimeout(() => {

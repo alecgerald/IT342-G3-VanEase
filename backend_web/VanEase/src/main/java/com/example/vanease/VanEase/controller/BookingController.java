@@ -124,17 +124,18 @@ public class BookingController {
 
             List<Booking> bookings = bookingService.getBookingsByUserId(user.getUserId());
 
-            // Map bookings to include only necessary fields
+            // Map bookings to include necessary fields including full vehicle details
             List<Map<String, Object>> response = bookings.stream().map(booking -> {
                 Map<String, Object> bookingData = new HashMap<>();
                 bookingData.put("bookingId", booking.getBookingId());
-                bookingData.put("vehicleId", booking.getVehicle().getVehicleId()); // Only include vehicleId
+                bookingData.put("vehicle", booking.getVehicle()); // Include full vehicle object
                 bookingData.put("startDate", booking.getStartDate());
                 bookingData.put("endDate", booking.getEndDate());
                 bookingData.put("pickupLocation", booking.getPickupLocation());
                 bookingData.put("dropoffLocation", booking.getDropoffLocation());
                 bookingData.put("status", booking.getStatus());
                 bookingData.put("price", booking.getTotalPrice());
+                bookingData.put("paymentMethod", booking.getPayment() != null ? booking.getPayment().getPaymentMethod() : null);
                 return bookingData;
             }).collect(Collectors.toList());
 
