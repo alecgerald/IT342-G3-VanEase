@@ -21,7 +21,7 @@ const GoogleLoginButton = () => {
 
         // Send the token to your backend
         const backendResponse = await axios.post(
-          'http://localhost:8080/api/auth/google',
+          'https://it342-g3-vanease.onrender.com/api/auth/google',
           {
             email: userInfo.data.email,
             name: userInfo.data.name,

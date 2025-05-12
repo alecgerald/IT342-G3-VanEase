@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: 'https://it342-g3-vanease.onrender.com/api',
 });
 
 // Add a request interceptor

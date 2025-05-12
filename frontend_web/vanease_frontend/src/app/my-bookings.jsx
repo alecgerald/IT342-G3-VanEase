@@ -27,7 +27,7 @@ export default function MyBookings() {
   const getImageUrl = (imagePath) => {
     if (!imagePath) return placeholderImage
     if (imagePath.startsWith("http")) return imagePath
-    return `http://localhost:8080${imagePath}`
+    return `https://it342-g3-vanease.onrender.com${imagePath}`
   }
 
   const fetchBookings = async () => {
