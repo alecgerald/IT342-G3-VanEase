@@ -143,14 +143,11 @@
 }
 
 .booking-form-section {
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--gray-200);
-}
-
-.booking-form-section:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+  background-color: #fff;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .booking-form-section-title {
@@ -159,6 +156,7 @@
   margin-bottom: 1.5rem;
   position: relative;
   padding-bottom: 0.5rem;
+  border-bottom: 1px solid #eee;
 }
 
 .booking-form-section-title::after {
@@ -187,6 +185,11 @@
   font-weight: 500;
   font-size: 0.875rem;
   color: var(--text-color);
+}
+
+.booking-label-icon {
+  margin-right: 0.5rem;
+  font-size: 1rem;
 }
 
 .booking-form-control {
@@ -297,6 +300,86 @@
   object-fit: contain;
 }
 
+.selected-van-details {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background-color: #f8f9fa;
+  border-radius: var(--border-radius);
+  border-left: 4px solid var(--accent-color);
+}
+
+.selected-van-title {
+  font-size: 1rem;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.selected-van-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.selected-van-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.selected-van-label {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.selected-van-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.booking-summary {
+  background-color: #f8f9fa;
+  border-radius: var(--border-radius);
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+.booking-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px dashed #e0e0e0;
+}
+
+.booking-summary-row:last-child {
+  border-bottom: none;
+}
+
+.booking-summary-row.total {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid #e0e0e0;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.booking-summary-label {
+  color: #555;
+  display: flex;
+  align-items: center;
+}
+
+.booking-summary-value {
+  font-weight: 600;
+}
+
+.booking-summary-value.highlight {
+  color: var(--accent-color);
+  font-size: 1.1rem;
+}
+
 @media (min-width: 768px) {
   .booking-form-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -324,5 +407,15 @@
 
   .booking-form {
     padding: 3rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .selected-van-info {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-form-grid {
+    grid-template-columns: 1fr;
   }
 }

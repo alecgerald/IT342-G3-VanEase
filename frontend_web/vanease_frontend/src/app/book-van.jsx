@@ -30,7 +30,7 @@ export default function BookVan() {
     const fetchVanModels = async () => {
       try {
         const response = await api.get("/vehicles")
-        setVanModels(response.data.filter(vehicle => vehicle.availability))
+        setVanModels(response.data.filter((vehicle) => vehicle.availability))
       } catch (error) {
         console.error("Error fetching van models:", error)
         setErrorMessage(error.response?.data || "Failed to load van models. Please try again later.")
@@ -133,7 +133,7 @@ export default function BookVan() {
         pickupLocation: formData.pickupLocation,
         dropoffLocation: formData.dropoffLocation,
         totalPrice: formData.totalPrice,
-        paymentMethod: formData.paymentMethod === "onsite" ? "CASH_ON_SITE" : "PAYPAL"
+        paymentMethod: formData.paymentMethod === "onsite" ? "CASH_ON_SITE" : "PAYPAL",
       }
 
       const response = await api.post("/bookings", bookingRequest)
@@ -233,11 +233,15 @@ export default function BookVan() {
               <form onSubmit={handleSubmit} className="van-form">
                 <div className="booking-form-section">
                   <h3 className="booking-form-section-title">Rental Details</h3>
+                </div>
 
+                <div className="booking-form-section">
+                  <h3 className="booking-form-section-title">Rental Dates &amp; Locations</h3>
+                  
                   <div className="booking-form-grid">
                     <div className="booking-form-group">
                       <label htmlFor="startDate" className="booking-form-label">
-                        Start Date
+                        <span className="booking-label-icon">📅</span> Start Date
                       </label>
                       <input
                         type="date"
@@ -251,26 +255,8 @@ export default function BookVan() {
                       />
                     </div>
                     <div className="booking-form-group">
-                      <label htmlFor="endDate" className="booking-form-label">
-                        End Date
-                      </label>
-                      <input
-                        type="date"
-                        id="endDate"
-                        name="endDate"
-                        value={formData.endDate}
-                        onChange={handleChange}
-                        className="booking-form-control"
-                        min={formData.startDate || new Date().toISOString().split("T")[0]}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="booking-form-grid">
-                    <div className="booking-form-group">
                       <label htmlFor="pickupLocation" className="booking-form-label">
-                        Pickup Location
+                        <span className="booking-label-icon">📍</span> Pickup Location
                       </label>
                       <input
                         type="text"
@@ -283,9 +269,27 @@ export default function BookVan() {
                         required
                       />
                     </div>
+                  </div>
+
+                  <div className="booking-form-grid">
+                    <div className="booking-form-group">
+                      <label htmlFor="endDate" className="booking-form-label">
+                        <span className="booking-label-icon">📅</span> End Date
+                      </label>
+                      <input
+                        type="date"
+                        id="endDate"
+                        name="endDate"
+                        value={formData.endDate}
+                        onChange={handleChange}
+                        className="booking-form-control"
+                        min={formData.startDate || new Date().toISOString().split("T")[0]}
+                        required
+                      />
+                    </div>
                     <div className="booking-form-group">
                       <label htmlFor="dropoffLocation" className="booking-form-label">
-                        Drop-off Location
+                        <span className="booking-label-icon">📍</span> Drop-off Location
                       </label>
                       <input
                         type="text"
@@ -299,10 +303,14 @@ export default function BookVan() {
                       <small className="form-text">Default drop-off at VanEase Cebu City Office</small>
                     </div>
                   </div>
+                </div>
 
+                <div className="booking-form-section">
+                  <h3 className="booking-form-section-title">Vehicle Selection</h3>
+                  
                   <div className="booking-form-group">
                     <label htmlFor="vanModel" className="booking-form-label">
-                      Van Model
+                      <span className="booking-label-icon">🚐</span> Select Your Van
                     </label>
                     <select
                       id="vanModel"
@@ -312,7 +320,7 @@ export default function BookVan() {
                       className="booking-form-control"
                       required
                     >
-                      <option value="">Select van model</option>
+                      <option value="">Choose a van model</option>
                       {vanModels.map((vehicle) => (
                         <option key={vehicle.vehicleId} value={`${vehicle.brand} ${vehicle.model}`}>
                           {vehicle.brand} {vehicle.model} - ₱{vehicle.rentalRate}/day
@@ -320,6 +328,33 @@ export default function BookVan() {
                       ))}
                     </select>
                   </div>
+                  
+                  {selectedVehicleId && (
+                    <div className="selected-van-details">
+                      <h4 className="selected-van-title">Selected Vehicle Details</h4>
+                      {vanModels.filter(v => v.vehicleId === selectedVehicleId).map(vehicle => (
+                        <div key={vehicle.vehicleId} className="selected-van-info">
+                          <div className="selected-van-info-item">
+                            <span className="selected-van-label">Model:</span>
+                            <span className="selected-van-value">{vehicle.brand} {vehicle.model}</span>
+                          </div>
+                          <div className="selected-van-info-item">
+                            <span className="selected-van-label">Daily Rate:</span>
+                            <span className="selected-van-value">₱{vehicle.rentalRate.toLocaleString()}</span>
+                          </div>
+                          <div className="selected-van-info-item">
+                            <span className="selected-van-label">Capacity:</span>
+                            <span className="selected-van-value">{vehicle.capacity || "Standard"} passengers</span>
+                          </div>
+                          <div className="selected-van-info-item">
+                            <span className="selected-van-label">Transmission:</span>
+                            <span className="selected-van-value">{vehicle.transmission || "Automatic"}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                   <div className="booking-form-group">
                     <label htmlFor="driverLicense" className="booking-form-label">
@@ -337,7 +372,7 @@ export default function BookVan() {
                     {driverLicensePreview && (
                       <div className="license-preview">
                         <img
-                          src={driverLicensePreview}
+                          src={driverLicensePreview || "/placeholder.svg"}
                           alt="Driver's License Preview"
                           className="license-preview-image"
                         />
@@ -345,20 +380,44 @@ export default function BookVan() {
                     )}
                   </div>
 
-                  <div className="booking-form-group">
-                    <label className="booking-form-label">Total Price</label>
-                    <div className="total-price">₱{formData.totalPrice.toLocaleString()}</div>
-                  </div>
-
-                  <div className="booking-form-group">
-                    <label className="booking-form-label">Total Days</label>
-                    <div className="total-price">
-                      {formData.totalDays} {formData.totalDays === 1 ? "day" : "days"}
+                <div className="booking-form-section">
+                  <h3 className="booking-form-section-title">Booking Summary</h3>
+                  
+                  <div className="booking-summary">
+                    <div className="booking-summary-row">
+                      <div className="booking-summary-label">
+                        <span className="booking-label-icon">📆</span> Rental Duration:
+                      </div>
+                      <div className="booking-summary-value highlight">
+                        {formData.totalDays} {formData.totalDays === 1 ? "day" : "days"}
+                      </div>
+                    </div>
+                    
+                    <div className="booking-summary-row">
+                      <div className="booking-summary-label">
+                        <span className="booking-label-icon">💰</span> Daily Rate:
+                      </div>
+                      <div className="booking-summary-value">
+                        {selectedVehicleId ? 
+                          `₱${vanModels.find(v => v.vehicleId === selectedVehicleId)?.rentalRate.toLocaleString()}/day` : 
+                          "Select a van"}
+                      </div>
+                    </div>
+                    
+                    <div className="booking-summary-row total">
+                      <div className="booking-summary-label">
+                        <span className="booking-label-icon">💵</span> Total Price:
+                      </div>
+                      <div className="booking-summary-value highlight">
+                        ₱{formData.totalPrice.toLocaleString()}
+                      </div>
                     </div>
                   </div>
+                </div>
 
+                <div className="booking-form-section">
+                  <h3 className="booking-form-section-title">Payment Method</h3>
                   <div className="booking-form-group">
-                    <label className="booking-form-label">Payment Method</label>
                     <div className="payment-options">
                       <label className="payment-option">
                         <input

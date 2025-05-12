@@ -12,7 +12,7 @@ export default function ManagerNavbar() {
     email: "admin@vanease.com",
   })
   const navigate = useNavigate()
-  const { token, setToken } = useUserContext()
+  const { token, logout } = useUserContext()
 
   useEffect(() => {
     // If no token is present, redirect to login
@@ -39,9 +39,8 @@ export default function ManagerNavbar() {
   }
 
   const handleLogout = () => {
-    // Clear token from both context and localStorage
-    setToken("")
-    localStorage.removeItem("token")
+    // Use the logout function from context instead of setToken
+    logout()
     navigate("/manager-login")
   }
 

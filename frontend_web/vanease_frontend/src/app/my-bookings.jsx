@@ -5,6 +5,10 @@ import { Link, useNavigate } from "react-router-dom"
 import { useUserContext } from "../context/UserContext"
 import api from "../utils/axiosConfig"
 import "../styles/my-bookings.css"
+import PayPalButton from "../components/PayPalButton"
+import PaymentReceiptModal from "../components/PaymentReceiptModal"
+import { toast } from "react-toastify"
+import placeholderImage from "../assets/placeholder.svg"
 
 export default function MyBookings() {
   const navigate = useNavigate()
@@ -16,31 +20,61 @@ export default function MyBookings() {
   const [successMessage, setSuccessMessage] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [paymentError, setPaymentError] = useState(null)
+  const [selectedPayment, setSelectedPayment] = useState(null)
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false)
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return placeholderImage
+    if (imagePath.startsWith("http")) return imagePath
+    return `http://localhost:8080${imagePath}`
+  }
+
+  const fetchBookings = async () => {
+    try {
+      if (!token) {
+        navigate("/login")
+        return
+      }
+
+      const response = await api.get("/bookings/user")
+      // Transform the data to include vehicle details and calculate totals
+      const transformedBookings = response.data.map((booking) => {
+        // Calculate total days from start and end dates
+        const startDate = new Date(booking.startDate)
+        const endDate = new Date(booking.endDate)
+        const diffTime = Math.abs(endDate - startDate)
+        const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+        // Get the total price from payment or calculate it
+        const totalPrice = booking.payment?.amount || 
+          (booking.vehicle?.rentalRate * totalDays) || 
+          booking.totalPrice || 0
+
+        return {
+          ...booking,
+          vehicleName: booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : "Unknown Vehicle",
+          vehicleImage: booking.vehicle?.image || null,
+          price: booking.vehicle?.rentalRate || 0,
+          totalDays: totalDays,
+          totalPrice: totalPrice,
+          paymentMethod: booking.payment?.paymentMethod || "N/A",
+          paymentStatus: booking.payment?.status || "N/A",
+          paymentDate: booking.payment?.paymentDate || null,
+          transactionId: booking.payment?.transactionId || null
+        }
+      })
+      setAllBookings(transformedBookings)
+      setBookings(transformedBookings)
+      setLoading(false)
+    } catch (err) {
+      console.error("Error fetching bookings:", err)
+      setError(err.response?.data || "Failed to load bookings")
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        if (!token) {
-          navigate("/login")
-          return
-        }
-
-        const response = await api.get("/bookings/user")
-        // Transform the data to include vehicle details
-        const transformedBookings = response.data.map(booking => ({
-          ...booking,
-          vehicleName: booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : 'Unknown Vehicle'
-        }))
-        setAllBookings(transformedBookings)
-        setBookings(transformedBookings)
-        setLoading(false)
-      } catch (err) {
-        console.error("Error fetching bookings:", err)
-        setError(err.response?.data || "Failed to load bookings")
-        setLoading(false)
-      }
-    }
-
     fetchBookings()
   }, [token, navigate])
 
@@ -58,30 +92,55 @@ export default function MyBookings() {
     return new Date(dateString).toLocaleDateString(undefined, options)
   }
 
-  const getStatusBadge = (status) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case "CONFIRMED":
-        return <span className="status-badge confirmed">✓ Confirmed</span>
+        return "#10b981" // green
       case "PENDING":
-        return <span className="status-badge pending">⏳ Pending</span>
+        return "#f59e0b" // amber
       case "COMPLETED":
-        return <span className="status-badge completed">✓ Completed</span>
+        return "#3b82f6" // blue
       case "CANCELLED":
-        return <span className="status-badge cancelled">✕ Cancelled</span>
+        return "#ef4444" // red
       default:
-        return null
+        return "#6b7280" // gray
     }
   }
 
-  const handlePayWithPaypal = async (bookingId) => {
-    try {
-      const response = await api.post(`/payments/paypal/${bookingId}`)
-      // Redirect to PayPal checkout URL
-      window.location.href = response.data.approvalUrl
-    } catch (error) {
-      console.error("Error initiating PayPal payment:", error)
-      setErrorMessage("Failed to initiate payment. Please try again.")
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "CONFIRMED":
+        return "✓"
+      case "PENDING":
+        return "⏳"
+      case "COMPLETED":
+        return "✓"
+      case "CANCELLED":
+        return "✕"
+      default:
+        return "•"
     }
+  }
+
+  const handlePaypalSuccess = (data) => {
+    // Clear any existing error messages
+    setPaymentError(null);
+    // Refresh the bookings list to show updated payment status
+    fetchBookings();
+    // Show success message
+    toast.success("Payment completed successfully!");
+  }
+
+  const handlePaypalError = (error) => {
+    console.error("PayPal payment error:", error);
+    const errorMessage = error.message || error.response?.data || "Payment failed. Please try again.";
+    setPaymentError(errorMessage);
+    toast.error(errorMessage);
+  }
+
+  const handleViewPayment = (payment) => {
+    setSelectedPayment(payment)
+    setIsReceiptModalOpen(true)
   }
 
   const handleCancelBooking = async (bookingId) => {
@@ -89,12 +148,12 @@ export default function MyBookings() {
       const response = await api.post(`/bookings/${bookingId}/cancel`)
       // Update the local state to reflect the cancellation
       const updatedBookings = allBookings.map((booking) =>
-        booking.bookingId === bookingId ? { ...booking, status: "CANCELLED" } : booking
+        booking.bookingId === bookingId ? { ...booking, status: "CANCELLED" } : booking,
       )
 
       setAllBookings(updatedBookings)
       setBookings(
-        activeTab === "all" ? updatedBookings : updatedBookings.filter((booking) => booking.status === activeTab)
+        activeTab === "all" ? updatedBookings : updatedBookings.filter((booking) => booking.status === activeTab),
       )
 
       setSuccessMessage("Booking has been cancelled successfully.")
@@ -161,81 +220,134 @@ export default function MyBookings() {
           <div className="bookings-list">
             {bookings.map((booking) => (
               <div key={booking.bookingId} className="booking-card">
-                <div className="booking-header">
+                <div className="booking-header" style={{ borderLeft: `4px solid ${getStatusColor(booking.status)}` }}>
                   <div className="booking-title">
-                    <h2>Booking #{booking.bookingId}</h2>
-                    {getStatusBadge(booking.status)}
+                    <div className="booking-id-section">
+                      <h2>Booking #{booking.bookingId}</h2>
+                    </div>
+                    <div className="booking-status" style={{ backgroundColor: `${getStatusColor(booking.status)}15` }}>
+                      <span className="status-icon">{getStatusIcon(booking.status)}</span>
+                      <span className="status-text">{booking.status}</span>
+                    </div>
                   </div>
-                  <div className="booking-vehicle">Vehicle: {booking.vehicleName}</div>
                 </div>
 
-                <div className="booking-details">
-                  <div className="booking-dates">
-                    <div className="booking-date">
-                      <div className="date-icon">📅</div>
-                      <div className="date-info">
-                        <span className="date-label">Start Date</span>
-                        <span className="date-value">{formatDate(booking.startDate)}</span>
-                      </div>
+                <div className="booking-content">
+                  <div className="booking-vehicle-section">
+                    <div className="vehicle-image-container">
+                      <img
+                        src={getImageUrl(booking.vehicleImage) || "/placeholder.svg"}
+                        alt={booking.vehicleName}
+                        className="vehicle-image"
+                        onError={(e) => {
+                          console.error("Image load error:", booking.vehicleImage)
+                          e.target.src = placeholderImage
+                        }}
+                      />
                     </div>
-                    <div className="booking-date">
-                      <div className="date-icon">📅</div>
-                      <div className="date-info">
-                        <span className="date-label">End Date</span>
-                        <span className="date-value">{formatDate(booking.endDate)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="booking-locations">
-                    <div className="booking-location">
-                      <div className="location-icon">📍</div>
-                      <div className="location-info">
-                        <span className="location-label">Pickup Location</span>
-                        <span className="location-value">{booking.pickupLocation}</span>
-                      </div>
-                    </div>
-                    <div className="booking-location">
-                      <div className="location-icon">📍</div>
-                      <div className="location-info">
-                        <span className="location-label">Dropoff Location</span>
-                        <span className="location-value">{booking.dropoffLocation}</span>
+                    <div className="vehicle-info">
+                      <h3 className="vehicle-name">{booking.vehicleName}</h3>
+                      <div className="vehicle-details">
+                        <div className="vehicle-detail-item">
+                          <span className="detail-label">Daily Rate:</span>
+                          <span className="detail-value">₱{booking.price.toLocaleString()}</span>
+                        </div>
+                        <div className="vehicle-detail-item">
+                          <span className="detail-label">Total Days:</span>
+                          <span className="detail-value">{booking.totalDays} {booking.totalDays === 1 ? 'day' : 'days'}</span>
+                        </div>
+                        <div className="vehicle-detail-item">
+                          <span className="detail-label">Total Amount:</span>
+                          <span className="detail-value highlight">₱{booking.totalPrice.toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="booking-price">
-                    <div className="price-icon">💰</div>
-                    <div className="price-info">
-                      <span className="price-label">Total Price</span>
-                      <span className="price-value">₱{booking.price}</span>
+                  <div className="booking-details-grid">
+                    <div className="booking-details-row">
+                      <div className="booking-date-range">
+                        <div className="date-icon">📅</div>
+                        <div className="date-info">
+                          <span className="date-label">Rental Period</span>
+                          <span className="date-value">
+                            {formatDate(booking.startDate)} - {formatDate(booking.endDate)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="booking-details-row">
+                      <div className="booking-location-range">
+                        <div className="location-icon">📍</div>
+                        <div className="location-info">
+                          <span className="location-label">Locations</span>
+                          <span className="location-value">
+                            {booking.pickupLocation} → {booking.dropoffLocation}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
+
+                  {booking.payment && (
+                    <div className="payment-section">
+                      <h4>Payment Information</h4>
+                      <div className="payment-info">
+                        <div className="payment-info-item">
+                          <span className="payment-label">Payment Method:</span>
+                          <span className="payment-value">{booking.payment.paymentMethod}</span>
+                        </div>
+                        <div className="payment-info-item">
+                          <span className="payment-label">Payment Status:</span>
+                          <span className="payment-value" style={{ color: getStatusColor(booking.payment.paymentStatus) }}>
+                            {booking.payment.paymentStatus}
+                          </span>
+                        </div>
+                        {booking.payment.transactionId && (
+                          <div className="payment-info-item">
+                            <span className="payment-label">Transaction ID:</span>
+                            <span className="payment-value">{booking.payment.transactionId}</span>
+                          </div>
+                        )}
+                        {booking.payment.paymentDate && (
+                          <div className="payment-info-item">
+                            <span className="payment-label">Payment Date:</span>
+                            <span className="payment-value">{formatDate(booking.payment.paymentDate)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="booking-actions">
-                  {booking.status === "PENDING" && (
+                  {booking.status === "PENDING" && !booking.payment && (
                     <>
-                      {booking.paymentMethod?.toLowerCase() === "paypal" ? (
-                        <button
-                          className="action-button pay"
-                          onClick={() => handlePayWithPaypal(booking.bookingId)}
-                        >
-                          Pay with PayPal
-                        </button>
-                      ) : (
-                        <span className="info-message">Payment will be collected on pickup</span>
+                      {paymentError && (
+                        <div className="payment-error-message">
+                          {paymentError}
+                        </div>
                       )}
-                      <button
-                        className="action-button cancel"
-                        onClick={() => handleCancelBooking(booking.bookingId)}
-                      >
-                        Cancel Booking
-                      </button>
+                      <div className="paypal-section">
+                        <PayPalButton
+                          key={`paypal-${booking.bookingId}`}
+                          bookingId={booking.bookingId}
+                          onSuccess={handlePaypalSuccess}
+                          onError={handlePaypalError}
+                        />
+                      </div>
                     </>
                   )}
-                  {booking.status === "CONFIRMED" && (
-                    <span className="info-message">Your van is on its way!</span>
+                  {booking.payment && booking.payment.paymentStatus === "COMPLETED" && (
+                    <button className="view-payment-btn" onClick={() => handleViewPayment(booking.payment)}>
+                      View Payment Receipt
+                    </button>
+                  )}
+                  {booking.status === "PENDING" && !booking.payment && (
+                    <button className="cancel-booking-btn" onClick={() => handleCancelBooking(booking.bookingId)}>
+                      Cancel Booking
+                    </button>
                   )}
                 </div>
               </div>
@@ -243,6 +355,15 @@ export default function MyBookings() {
           </div>
         )}
       </div>
+
+      <PaymentReceiptModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => {
+          setIsReceiptModalOpen(false)
+          setSelectedPayment(null)
+        }}
+        payment={selectedPayment}
+      />
     </main>
   )
 }

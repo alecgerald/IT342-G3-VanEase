@@ -2,8 +2,10 @@
 
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { useUserContext } from "../context/UserContext" // Keep the UserContext import
+import { useUserContext } from "../context/UserContext"
 import GoogleLoginButton from "./components/GoogleLoginButton"
+import api from "../utils/axiosConfig"
+import { toast } from "react-toastify"
 import "../styles/auth.css"
 
 export default function Login() {
@@ -15,7 +17,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
-  const { setToken } = useUserContext() // Keep the context usage
+  const { login } = useUserContext()
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -31,28 +33,25 @@ export default function Login() {
     setIsLoading(true)
 
     try {
-      // Keep the original API endpoint and request structure
-      const response = await fetch("http://localhost:8080/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
+      const response = await api.post("/auth/login", formData)
+      const { token, role } = response.data
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        setError(errorText || "Login failed")
-        setIsLoading(false)
+      // Check if the user is a customer
+      if (role !== "ROLE_CUSTOMER") {
+        setError("Access denied. This login is for customers only.")
+        toast.error("Access denied. This login is for customers only.")
         return
       }
 
-      const data = await response.json()
-      setToken(data.token) // Keep storing the token in the global state
-      localStorage.setItem("token", data.token) // Keep storing the token in localStorage
-      navigate("/") // Keep the redirect to home page
+      login(token)
+      toast.success("Login successful!")
+      navigate("/")
     } catch (err) {
-      setError("An error occurred. Please try again.")
+      console.error("Login error:", err)
+      const errorMessage = err.response?.data || "An error occurred. Please try again."
+      setError(errorMessage)
+      toast.error(errorMessage)
+    } finally {
       setIsLoading(false)
     }
   }
@@ -196,11 +195,7 @@ export default function Login() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="auth-submit-btn"
-              disabled={isLoading}
-            >
+            <button type="submit" className="auth-submit-btn" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </button>
 
@@ -209,6 +204,25 @@ export default function Login() {
             </div>
 
             <GoogleLoginButton />
+
+            <Link to="/manager-login" className="auth-manager-btn">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="manager-icon"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              Manager Login
+            </Link>
 
             <div className="auth-footer">
               <p>

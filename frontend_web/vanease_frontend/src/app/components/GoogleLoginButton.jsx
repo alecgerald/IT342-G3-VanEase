@@ -6,9 +6,9 @@ import { toast } from 'react-toastify';
 
 const GoogleLoginButton = () => {
   const navigate = useNavigate();
-  const { setToken } = useUserContext();
+  const { login } = useUserContext();
 
-  const login = useGoogleLogin({
+  const googleLogin = useGoogleLogin({
     onSuccess: async (response) => {
       try {
         // Get user info from Google
@@ -30,16 +30,15 @@ const GoogleLoginButton = () => {
           }
         );
 
-        // Store the JWT token
+        // Store the JWT token using the login function from context
         const { token, user } = backendResponse.data;
-        setToken(token);
-        localStorage.setItem('token', token);
+        login(token);
         
         toast.success('Successfully signed in with Google!');
         navigate('/');
       } catch (error) {
         console.error('Error during Google login:', error);
-        const errorMessage = error.response?.data || 'Failed to sign in with Google. Please try again.';
+        const errorMessage = error.response?.data?.message || 'Failed to sign in with Google. Please try again.';
         toast.error(errorMessage);
       }
     },
@@ -51,7 +50,7 @@ const GoogleLoginButton = () => {
 
   return (
     <button
-      onClick={() => login()}
+      onClick={() => googleLogin()}
       className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
     >
       <img

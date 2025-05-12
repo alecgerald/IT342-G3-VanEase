@@ -1,16 +1,119 @@
 "use client"
 
-import { Link } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { useUserContext } from "../context/UserContext"
 import ManagerNavbar from "../components/ManagerNavbar"
+import api from "../utils/axiosConfig"
+import { toast } from "react-toastify"
 import "../styles/manager-dashboard.css"
 
 export default function ManagerDashboard() {
-  // Static data for dashboard
-  const stats = {
-    totalVans: 12,
-    activeBookings: 8,
-    pendingBookings: 3,
-    revenue: "₱45,600",
+  const navigate = useNavigate()
+  const { token, user, loading: userLoading } = useUserContext()
+  const [stats, setStats] = useState({
+    totalVans: 0,
+    activeBookings: 0,
+    pendingBookings: 0,
+    revenue: 0,
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    // Wait for user context to load
+    if (userLoading) return
+
+    // Check if user is a manager
+    if (!token || !user || user.role !== 'ROLE_MANAGER') {
+      console.error('Access denied:', { token: !!token, user: !!user, role: user?.role })
+      toast.error('Access denied. Please log in as a manager.')
+      navigate('/manager-login')
+      return
+    }
+
+    fetchDashboardData()
+  }, [token, user, userLoading, navigate])
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Fetch all required data in parallel
+      const [vehiclesResponse, bookingsResponse] = await Promise.all([
+        api.get('/vehicles'),
+        api.get('/bookings')
+      ])
+
+      const vehicles = vehiclesResponse.data
+      const bookings = bookingsResponse.data
+
+      // Calculate statistics
+      const totalVans = vehicles.length
+      const activeBookings = bookings.filter(booking => 
+        booking.status === 'ACTIVE' || booking.status === 'CONFIRMED'
+      ).length
+      const pendingBookings = bookings.filter(booking => 
+        booking.status === 'PENDING'
+      ).length
+      const revenue = bookings
+        .filter(booking => booking.payment?.status === 'COMPLETED')
+        .reduce((total, booking) => total + (booking.totalPrice || 0), 0)
+
+      setStats({
+        totalVans,
+        activeBookings,
+        pendingBookings,
+        revenue: new Intl.NumberFormat('en-PH', {
+          style: 'currency',
+          currency: 'PHP'
+        }).format(revenue)
+      })
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err)
+      setError(err.response?.data || 'Failed to load dashboard data')
+      toast.error(err.response?.data || 'Failed to load dashboard data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (userLoading) {
+    return (
+      <div className="manager-page">
+        <ManagerNavbar />
+        <div className="manager-dashboard-container">
+          <div className="loading">Loading user information...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user || user.role !== 'ROLE_MANAGER') {
+    return null // Will redirect in useEffect
+  }
+
+  if (loading) {
+    return (
+      <div className="manager-page">
+        <ManagerNavbar />
+        <div className="manager-dashboard-container">
+          <div className="loading">Loading dashboard data...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="manager-page">
+        <ManagerNavbar />
+        <div className="manager-dashboard-container">
+          <div className="error-message">{error}</div>
+        </div>
+      </div>
+    )
   }
 
   return (

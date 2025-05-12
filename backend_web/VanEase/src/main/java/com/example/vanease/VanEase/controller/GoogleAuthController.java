@@ -89,8 +89,8 @@ public class GoogleAuthController {
                 }
             }
 
-            // Generate JWT token
-            String token = jwtService.generateToken(user.getEmail());
+            // Generate JWT token with role (adding ROLE_ prefix)
+            String token = jwtService.generateTokenWithRole(user.getEmail(), "ROLE_" + user.getRole().name());
 
             // Return user info and token
             Map<String, Object> response = new HashMap<>();

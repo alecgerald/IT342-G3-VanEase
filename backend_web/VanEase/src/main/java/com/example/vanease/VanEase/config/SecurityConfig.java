@@ -37,10 +37,14 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configure(http))  // Enable CORS
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/vehicles/**").permitAll()
+
+                // PayPal endpoints - allow authenticated users
+                .requestMatchers("/api/paypal/**").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_MANAGER")
 
                 // Customer endpoints
                 .requestMatchers("/api/user/**").hasAuthority("ROLE_CUSTOMER")
@@ -48,8 +52,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/bookings").hasAuthority("ROLE_CUSTOMER")
                 .requestMatchers(HttpMethod.POST, "/api/bookings/*/cancel").hasAuthority("ROLE_CUSTOMER")
 
-                // Manager endpoints
-                .requestMatchers("/api/bookings/**").hasAuthority("ROLE_MANAGER")
+                // Manager endpoints - update to be more specific
+                .requestMatchers(HttpMethod.GET, "/api/bookings/all").hasAuthority("ROLE_MANAGER")
+                .requestMatchers(HttpMethod.GET, "/api/bookings/{id}").hasAuthority("ROLE_MANAGER")
+                .requestMatchers(HttpMethod.POST, "/api/bookings/*/confirm").hasAuthority("ROLE_MANAGER")
+                .requestMatchers(HttpMethod.POST, "/api/bookings/*/complete").hasAuthority("ROLE_MANAGER")
                 .requestMatchers("/api/vehicles/**").hasAuthority("ROLE_MANAGER")
                 .requestMatchers("/api/transactions/**").hasAuthority("ROLE_MANAGER")
 
